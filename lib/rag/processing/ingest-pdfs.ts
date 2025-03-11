@@ -22,15 +22,13 @@ type ReportLYD = {
  * Ingests PDFs from Supabase storage into the vector database
  * @param limit Optional limit on number of PDFs to process
  * @param processedIds Set of already processed report IDs to skip
- * @param offset Starting point in the reports_lyd table
  * @returns Summary of ingestion process
  */
 export async function ingestPdfsFromSupabase(
   limit?: number, 
-  processedIds: Set<string> = new Set(),
-  offset: number = 0
+  processedIds: Set<string> = new Set()
 ) {
-  console.log(`Starting PDF ingestion process... ${limit ? `(limit: ${limit})` : '(no limit)'}, offset: ${offset}`);
+  console.log(`Starting PDF ingestion process... ${limit ? `(limit: ${limit})` : '(no limit)'}`);
   console.log(`Already processed: ${processedIds.size} reports`);
   
   const results = {
@@ -38,8 +36,7 @@ export async function ingestPdfsFromSupabase(
     failed: 0,
     skipped: 0,
     totalChunks: 0,
-    processedIds: [] as string[],
-    hasMore: false  // Flag to indicate if there are more reports to process
+    processedIds: [] as string[]
   };
 
   try {
@@ -49,28 +46,33 @@ export async function ingestPdfsFromSupabase(
       .select('*')
       .order('created_at', { ascending: false });
     
-    // Apply range-based pagination with offset
-    if (limit) {
-      query.range(offset, offset + limit - 1);
+    // Add a filter to exclude already processed IDs if there are any
+    if (processedIds.size > 0) {
+      const processedIdsArray = Array.from(processedIds);
+      // Supabase has a limit on the number of items in a 'not.in' filter
+      // So we'll just filter the results in memory if there are too many
+      if (processedIdsArray.length < 100) {
+        query.filter('id', 'not.in', `(${processedIdsArray.map(id => `"${id}"`).join(',')})`);
+      }
     }
     
-    console.log(`Fetching reports ${offset} to ${offset + (limit || 1000) - 1} from database...`);
-    const { data: reports, error } = await query;
+    if (limit) {
+      query.limit(limit);
+    }
     
+    const { data: reports, error } = await query;
+
     if (error) {
+      console.error('Error fetching reports:', error);
       throw error;
     }
-    
-    // Set flag to indicate if there are potentially more records
-    // If we got a full batch of the requested size, assume there could be more
-    results.hasMore = reports.length === limit;
-    
-    // Post-query filtering for already processed IDs
-    const filteredReports = processedIds.size > 0 
+
+    // Filter out already processed reports if we couldn't do it in the query
+    const filteredReports = processedIds.size >= 100
       ? reports.filter(report => !processedIds.has(report.id))
       : reports;
-    
-    console.log(`Found ${filteredReports.length} new reports to process out of ${reports.length} fetched`);
+      
+    console.log(`Found ${filteredReports.length} new reports to process`);
 
     // 2. Process each report
     for (const report of filteredReports) {
@@ -83,14 +85,13 @@ export async function ingestPdfsFromSupabase(
       } catch (error) {
         console.error(`Failed to process report "${report.title}":`, error);
         results.failed++;
-        // We still add the ID to processed to avoid repeated failures
-        results.processedIds.push(report.id);
       }
     }
 
+    console.log('Ingestion summary:', JSON.stringify(results, null, 2));
     return results;
   } catch (error) {
-    console.error("Error in PDF ingestion process:", error);
+    console.error('Error in PDF ingestion process:', error);
     throw error;
   }
 }
@@ -100,159 +101,129 @@ export async function ingestPdfsFromSupabase(
  * Uses multiple fallback strategies to download the PDF
  */
 export async function processReport(report: ReportLYD) {
-  console.log(`Downloading PDF for report: ${report.title} (ID: ${report.id})`);
-  console.log(`PDF URL: ${report.pdf_url}`);
-  
-  let pdfBuffer: Buffer | null = null;
-  
   try {
-    // Attempt direct fetch first (no auth)
-    console.log("Attempting direct fetch...");
+    // 1. Download the PDF using multiple strategies
+    console.log(`Downloading PDF for report: ${report.title} (ID: ${report.id})`);
+    console.log(`PDF URL: ${report.pdf_url}`);
+    
+    let pdfBuffer: Buffer | null = null;
+    
+    // Try multiple strategies to download the PDF
     try {
+      // Strategy 1: Direct URL fetch (no auth)
+      console.log('Attempting direct fetch...');
       const response = await fetch(report.pdf_url);
-      if (!response.ok) {
-        throw new Error(`Direct fetch failed with status: ${response.status} ${response.statusText}`);
+      
+      if (response.ok) {
+        const pdfData = await response.arrayBuffer();
+        pdfBuffer = Buffer.from(pdfData);
+        console.log(`✅ Direct fetch successful (${(pdfBuffer.length / 1024).toFixed(2)} KB)`);
+      } else {
+        console.log(`❌ Direct fetch failed: ${response.status} ${response.statusText}`);
       }
-      
-      const arrayBuffer = await response.arrayBuffer();
-      pdfBuffer = Buffer.from(arrayBuffer);
-      const sizeKB = (pdfBuffer.length / 1024).toFixed(2);
-      console.log(`✅ Direct fetch successful (${sizeKB} KB)`);
     } catch (error: any) {
-      console.log(`❌ Direct fetch failed: ${error.message}`);
-      
-      // Try authenticated fetch
-      console.log("Attempting authenticated fetch...");
+      console.log('Direct fetch error:', error.message);
+    }
+    
+    // Strategy 2: Authenticated fetch with Supabase token
+    if (!pdfBuffer) {
       try {
-        const supabaseToken = supabaseAdmin.auth.getSession();
+        console.log('Attempting authenticated fetch...');
         const response = await fetch(report.pdf_url, {
           headers: {
-            Authorization: `Bearer ${supabaseToken}`
+            'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY}`
           }
         });
         
-        if (!response.ok) {
-          throw new Error(`Auth fetch failed with status: ${response.status} ${response.statusText}`);
+        if (response.ok) {
+          const pdfData = await response.arrayBuffer();
+          pdfBuffer = Buffer.from(pdfData);
+          console.log(`✅ Authenticated fetch successful (${(pdfBuffer.length / 1024).toFixed(2)} KB)`);
+        } else {
+          console.log(`❌ Authenticated fetch failed: ${response.status} ${response.statusText}`);
         }
-        
-        const arrayBuffer = await response.arrayBuffer();
-        pdfBuffer = Buffer.from(arrayBuffer);
-        const sizeKB = (pdfBuffer.length / 1024).toFixed(2);
-        console.log(`✅ Authenticated fetch successful (${sizeKB} KB)`);
-      } catch (authError: any) {
-        console.log(`❌ Authenticated fetch failed: ${authError.message}`);
-        
-        // Final attempt using Supabase storage
-        console.log("Attempting Supabase storage download...");
-        try {
-          // Extract bucket and object path from URL
-          const url = new URL(report.pdf_url);
-          const pathParts = url.pathname.split('/');
-          const bucketIndex = pathParts.findIndex(part => part === 'object');
-          
-          if (bucketIndex === -1 || bucketIndex + 2 >= pathParts.length) {
-            throw new Error("Could not parse storage URL properly");
-          }
-          
-          const bucket = pathParts[bucketIndex + 2];
-          const objectPath = pathParts.slice(bucketIndex + 3).join('/');
-          
-          const { data, error } = await supabaseAdmin.storage
-            .from(bucket)
-            .download(objectPath);
-            
-          if (error) throw error;
-          
-          pdfBuffer = Buffer.from(await data.arrayBuffer());
-          const sizeKB = (pdfBuffer.length / 1024).toFixed(2);
-          console.log(`✅ Supabase storage download successful (${sizeKB} KB)`);
-        } catch (storageError: any) {
-          console.log(`❌ Supabase storage download failed: ${storageError.message}`);
-          throw new Error("All download methods failed");
-        }
+      } catch (error: any) {
+        console.log('Authenticated fetch error:', error.message);
       }
     }
     
-    console.log("Extracting text from PDF...");
+    // Strategy 3: Try to use Supabase storage API directly
+    if (!pdfBuffer) {
+      try {
+        console.log('Attempting Supabase storage download...');
+        // Extract bucket path from URL
+        const pdfPath = report.pdf_url.replace(/^https:\/\/.*\/storage\/v1\/object\/public\//, '');
+        const [bucket, ...pathParts] = pdfPath.split('/');
+        const objectPath = pathParts.join('/');
+        
+        console.log(`Bucket: ${bucket}, Path: ${objectPath}`);
+        
+        const { data, error } = await supabaseAdmin
+          .storage
+          .from(bucket)
+          .download(objectPath);
+          
+        if (data && !error) {
+          const pdfData = await data.arrayBuffer();
+          pdfBuffer = Buffer.from(pdfData);
+          console.log(`✅ Supabase storage download successful (${(pdfBuffer.length / 1024).toFixed(2)} KB)`);
+        } else {
+          console.log(`❌ Supabase storage download failed: ${error?.message}`);
+        }
+      } catch (error: any) {
+        console.log('Supabase storage error:', error.message);
+      }
+    }
+    
+    // If all strategies failed, throw an error
+    if (!pdfBuffer) {
+      throw new Error('All download strategies failed for this PDF');
+    }
+    
+    // 2. Extract text from the PDF
+    console.log('Extracting text from PDF...');
     const text = await extractPdfText(pdfBuffer);
     
     if (!text || text.trim().length === 0) {
-      throw new Error("Extracted text is empty");
+      throw new Error('Extracted text is empty');
     }
     
-    console.log(`Successfully extracted ${text.length} characters of text`);
+    console.log(`✅ Extracted ${text.length} characters of text`);
     
-    // Split text into chunks
-    const chunks: string[] = await splitText(text);
-    console.log(`Split text into ${chunks.length} chunks`);
+    // 3. Split the text into chunks
+    console.log('Splitting text into chunks...');
+    const chunks = await splitText(text);
+    console.log(`✅ Split text into ${chunks.length} chunks`);
     
-    if (chunks.length === 0) {
-      throw new Error("No chunks created from text");
-    }
+    // 4. Generate embeddings for each chunk
+    console.log('Generating embeddings...');
+    const embeddings = await generateEmbeddings(chunks);
+    console.log(`✅ Generated embeddings for ${chunks.length} chunks`);
     
-    // Generate embeddings for all chunks at once using the generateEmbeddings function
-    console.log(`Generating embeddings for ${chunks.length} chunks...`);
-    const embeddings: number[][] = await generateEmbeddings(chunks);
-    console.log(`Generated ${embeddings.length} embeddings`);
+    // 5. Store each chunk with its embedding in the vector DB
+    console.log(`Storing ${chunks.length} chunks in vector DB...`);
     
-    // Create metadata
+    // Metadata for storage
     const metadata = {
-      title: report.title,
       reportId: report.id,
+      title: report.title,
       theme: report.theme,
       publicationDate: report.publication_date,
       source: report.source || 'LYD',
       pdfUrl: report.pdf_url
     };
     
-    // Double-check sanitization before database insertion
-    const sanitizedChunks = chunks.map((chunk: string) => {
-      // Remove any remaining null bytes or problematic characters
-      return chunk.replace(/\0/g, '')
-                  .replace(/[\x01-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
-    });
+    // Insert chunks into the documents table
+    await db.insert(documentsTable).values(
+      chunks.map((chunk, i) => ({
+        content: chunk,
+        embedding: embeddings[i],
+        metadata: metadata
+      }))
+    );
     
-    console.log(`Storing ${sanitizedChunks.length} chunks in vector DB...`);
-    
-    try {
-      // Insert chunks into the documents table
-      await db.insert(documentsTable).values(
-        sanitizedChunks.map((chunk: string, i: number) => ({
-          content: chunk,
-          embedding: embeddings[i],
-          metadata: metadata
-        }))
-      );
-      
-      console.log(`✅ Successfully processed report "${report.title}" (${chunks.length} chunks)`);
-      return chunks.length;
-    } catch (dbError) {
-      console.error(`❌ Database insertion error for "${report.title}":`, dbError);
-      
-      // Try to insert chunks one by one to identify problematic ones
-      console.log("Attempting to insert chunks individually...");
-      let successCount = 0;
-      
-      for (let i = 0; i < sanitizedChunks.length; i++) {
-        try {
-          await db.insert(documentsTable).values({
-            content: sanitizedChunks[i],
-            embedding: embeddings[i],
-            metadata: metadata
-          });
-          successCount++;
-        } catch (singleInsertError: any) {
-          console.error(`Failed to insert chunk ${i+1}/${sanitizedChunks.length}: ${singleInsertError.message}`);
-        }
-      }
-      
-      if (successCount > 0) {
-        console.log(`⚠️ Partially processed report "${report.title}" (${successCount}/${chunks.length} chunks)`);
-        return successCount;
-      } else {
-        throw new Error(`Failed to insert any chunks for report "${report.title}"`);
-      }
-    }
+    console.log(`✅ Successfully processed report "${report.title}" (${chunks.length} chunks)`);
+    return chunks.length;
   } catch (error) {
     console.error(`❌ Failed to process report "${report.title}":`, error);
     throw error;
@@ -289,7 +260,6 @@ export async function processAllReports(
   
   let hasMoreReports = true;
   let batchCounter = 0;
-  let currentOffset = 0;
   
   try {
     // First get the total count of reports for progress tracking
@@ -307,8 +277,8 @@ export async function processAllReports(
       
       const batchStartTime = Date.now();
       
-      // Process the current batch with offset for pagination
-      const results = await ingestPdfsFromSupabase(batchSize, processedIds, currentOffset);
+      // Process the current batch
+      const results = await ingestPdfsFromSupabase(batchSize, processedIds);
       
       // Update stats
       batchCounter++;
@@ -338,19 +308,8 @@ export async function processAllReports(
         console.log(`Estimated time remaining: ${formatTimeEstimate(remainingTime)} (${reportsPerSecond.toFixed(2)} reports/sec)`);
       }
       
-      // Update the offset for the next batch
-      currentOffset += batchSize;
-      
       // Check if we have more to process
-      // We consider three conditions:
-      // 1. The batch returned more results than zero (processed > 0)
-      // 2. We haven't processed all reports according to the total count
-      // 3. The batch indicates there are more results available
-      hasMoreReports = (
-        results.processed > 0 && 
-        processedIds.size < totalReports &&
-        (results.hasMore || currentOffset < totalReports)
-      );
+      hasMoreReports = results.processed > 0 && processedIds.size < totalReports;
       
       // Delay between batches if we're continuing
       if (hasMoreReports && delayBetweenBatches > 0) {
@@ -371,22 +330,12 @@ export async function processAllReports(
     console.log(`Total chunks: ${overallStats.totalChunks}`);
     console.log(`Total batches: ${overallStats.batches}`);
     console.log(`Total time: ${formatTimeEstimate(totalTime)}`);
-    console.log(`Progress: ${processedIds.size}/${totalReports} (${(processedIds.size / totalReports * 100).toFixed(1)}%)`);
+    console.log(`Average rate: ${(overallStats.totalProcessed / totalTime).toFixed(2)} reports/sec`);
+    console.log(`Final progress: ${processedIds.size}/${totalReports} (${(processedIds.size / totalReports * 100).toFixed(1)}%)`);
     
-    if (processedIds.size < totalReports) {
-      console.log(`\n⚠️ Note: Not all reports were processed. ${totalReports - processedIds.size} reports remain.`);
-      console.log(`To continue processing, run the script again.`);
-    }
-    
-    return {
-      totalProcessed: overallStats.totalProcessed,
-      totalFailed: overallStats.totalFailed,
-      totalChunks: overallStats.totalChunks,
-      batches: overallStats.batches,
-      totalTime
-    };
+    return overallStats;
   } catch (error) {
-    console.error('Error processing reports:', error);
+    console.error('Error in batch processing:', error);
     throw error;
   }
 }

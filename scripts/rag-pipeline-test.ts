@@ -14,13 +14,7 @@ import readline from 'readline';
 import dotenv from 'dotenv';
 import * as fs from 'fs';
 
-// Import the RAG pipeline components
-import { getOptimizedQuery } from '../lib/rag/retrieval/optimize-query';
-import { retrieveDocuments } from '../lib/rag/retrieval/retrieve-documents';
-import { rankDocuments } from '../lib/rag/retrieval/rerank-documents';
-import { generateCompletionWithContext } from '../lib/rag/generate/generate-completion';
-
-// Load environment variables
+// Load environment variables early
 const envPath = path.resolve(process.cwd(), '.env.local');
 if (fs.existsSync(envPath)) {
   console.log(`Loading environment from ${envPath}`);
@@ -30,11 +24,28 @@ if (fs.existsSync(envPath)) {
   dotenv.config();
 }
 
-// Fix potential environment variable naming inconsistencies
-if (process.env.OPEN_AI_API_KEY && !process.env.OPENAI_API_KEY) {
-  console.log('Detected OPEN_AI_API_KEY, copying to OPENAI_API_KEY for compatibility');
-  process.env.OPENAI_API_KEY = process.env.OPEN_AI_API_KEY;
+// Debug environment variables
+console.log('\nEnvironment variables:');
+console.log(`OPENAI_API_KEY: ${process.env.OPENAI_API_KEY ? '✅' : '❌'}`);
+console.log(`Current working directory: ${process.cwd()}`);
+
+// Import the RAG pipeline components
+try {
+  // Import modules with proper error handling
+  const { getOptimizedQuery } = require('../lib/rag/retrieval/optimize-query');
+  const { retrieveDocuments } = require('../lib/rag/retrieval/retrieve-documents');
+  const { rankDocuments } = require('../lib/rag/retrieval/rerank-documents');
+  const { generateCompletionWithContext } = require('../lib/rag/generate/generate-completion');
+} catch (error) {
+  console.error('❌ Error importing modules:', error);
+  process.exit(1);
 }
+
+// Redefine the imports after the error handling
+import { getOptimizedQuery } from '../lib/rag/retrieval/optimize-query';
+import { retrieveDocuments } from '../lib/rag/retrieval/retrieve-documents';
+import { rankDocuments } from '../lib/rag/retrieval/rerank-documents';
+import { generateCompletionWithContext } from '../lib/rag/generate/generate-completion';
 
 // WARNING: Only for development/testing
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
@@ -118,7 +129,7 @@ async function testRagPipeline(query: string) {
     
     if (retrievedDocs.length > 0) {
       // Log sample similarities
-      const similarities = retrievedDocs.map(doc => 
+      const similarities = retrievedDocs.map((doc: { similarity?: number }) => 
         doc.similarity !== undefined ? Number(doc.similarity).toFixed(4) : 'N/A'
       );
       console.log(`Similarity scores: ${similarities.slice(0, 5).join(', ')}${similarities.length > 5 ? '...' : ''}`);
@@ -128,22 +139,6 @@ async function testRagPipeline(query: string) {
         const preview = retrievedDocs[0].content.substring(0, 100) + '...';
         console.log(`First document preview: "${preview}"`);
       }
-      
-      // ADDED: Log all retrieved documents before reranking
-      console.log('\n===== RETRIEVED DOCUMENTS BEFORE RERANKING =====');
-      retrievedDocs.forEach((doc, index) => {
-        const similarityScore = doc.similarity !== undefined ? Number(doc.similarity).toFixed(4) : 'N/A';
-        // Using optional chaining since metadata might not exist on this document type
-        const contentPreview = doc.content ? doc.content.substring(0, 150) + '...' : 'No content';
-        
-        console.log(`\n📄 Document #${index + 1} (Similarity: ${similarityScore})`);
-        // Only try to access metadata if available
-        if ('metadata' in doc) {
-          const metadata = doc.metadata ? JSON.stringify(doc.metadata).substring(0, 100) : 'No metadata';
-          console.log(`Metadata: ${metadata}`);
-        }
-        console.log(`Content: ${contentPreview}`);
-      });
     }
     
     // STEP 3: Document Reranking
@@ -269,7 +264,6 @@ async function main() {
   console.log('🤖 Complete RAG Pipeline Test');
   console.log('============================');
   console.log(`OPENAI_API_KEY: ${process.env.OPENAI_API_KEY ? '✅' : '❌'}`);
-  console.log(`OPEN_AI_API_KEY: ${process.env.OPEN_AI_API_KEY ? '✅' : '❌'}`);
   console.log(`Cohere API Key: ${process.env.COHERE_API_KEY ? '✅' : '❌'}`);
   console.log(`Verbose Logging: ${VERBOSE ? '✅' : '❌'}`);
   

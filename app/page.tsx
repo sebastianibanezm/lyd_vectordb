@@ -15,7 +15,14 @@ export default function Home() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Question submitted:", question);
+    
+    if (question.trim()) {
+      // Encode the question to make it URL-safe
+      const encodedQuestion = encodeURIComponent(question);
+      
+      // Navigate to the chat page with the question as a query parameter
+      window.location.href = `/chat?q=${encodedQuestion}`;
+    }
   };
 
   return (
@@ -230,7 +237,9 @@ export default function Home() {
                               borderBottomLeftRadius: '8px',
                               padding: '0 16px',
                               fontSize: '14px',
-                              outline: 'none'
+                              outline: 'none',
+                              backgroundColor: 'white',
+                              color: 'black'
                             }}
                           />
                           

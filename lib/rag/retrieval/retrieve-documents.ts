@@ -23,6 +23,7 @@ export async function retrieveDocuments(input: string, options: { limit?: number
         const documents = await db
         .select({
             content: documentsTable.content,
+            metadata: documentsTable.metadata,
             similarity
         })
         .from(documentsTable)
@@ -31,6 +32,20 @@ export async function retrieveDocuments(input: string, options: { limit?: number
         .limit(limit);
         
         console.log(`retrieve-documents.ts: Retrieved ${documents.length} documents`);
+        
+        // Add debug logging for metadata
+        console.log('retrieve-documents.ts: Checking metadata in retrieved documents');
+        documents.forEach((doc, i) => {
+            const hasMetadata = doc.metadata && Object.keys(doc.metadata).length > 0;
+            console.log(`retrieve-documents.ts: Document ${i + 1} has metadata: ${hasMetadata ? 'YES' : 'NO'}`);
+            if (hasMetadata) {
+                console.log(`retrieve-documents.ts: Metadata keys: ${Object.keys(doc.metadata).join(', ')}`);
+                if (doc.metadata.originalUrl) {
+                    console.log(`retrieve-documents.ts: Found originalUrl: ${doc.metadata.originalUrl}`);
+                }
+            }
+        });
+        
         return documents;
     } catch (error) {
         console.error("Error retrieving documents:", error);

@@ -868,6 +868,21 @@ export default function ChatPage() {
     
     if (!questionMessage || !answerMessage) return;
     
+    // Find the selected carpeta
+    const selectedCarpeta = carpetas.find(carpeta => carpeta.id === selectedCarpetaId);
+    if (!selectedCarpeta) return;
+    
+    // Check if question already exists in the carpeta
+    const questionExists = selectedCarpeta.questions.some(
+      question => question.originalQuestion === questionMessage.content
+    );
+    
+    if (questionExists) {
+      // Show error message that question already exists
+      alert(`La pregunta ya esta en la carpeta ${selectedCarpeta.name}`);
+      return;
+    }
+    
     // Create the question object
     const questionToSave = {
       id: Date.now().toString(),
@@ -899,7 +914,7 @@ export default function ChatPage() {
     setShowSaveToCarpetaDialog(false);
     setSelectedCarpetaId(null);
     
-    // Show success notification (you could add a toast notification here)
+    // Show success notification
     alert('Pregunta guardada en carpeta');
   };
   

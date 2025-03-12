@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { Send, SquarePen, Bookmark, RefreshCcw, X } from 'lucide-react';
+import { Send, SquarePen, Bookmark, RefreshCcw, X, FolderPlus, Plus, Folder, Archive } from 'lucide-react';
 import { useCompletion } from "@ai-sdk/react";
 import Link from "next/link";
 import ReactMarkdown from 'react-markdown';
@@ -195,7 +195,7 @@ const styles = {
     width: '32px',
     minWidth: '32px',
     borderRadius: '6px',
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#64748b',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -567,13 +567,60 @@ export default function ChatPage() {
   
   const [input, setInput] = useState('');
   
-  // Check for question in URL parameter and submit it automatically
+  // Function to scroll to the bottom of the chat container
+  const scrollToBottom = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
+    } else {
+      // Fallback method using DOM directly
+      const chatContainer = document.getElementById('chat-container');
+      if (chatContainer) {
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }
+    }
+  };
+
   useEffect(() => {
-    // Get the question from URL if it exists
+    // Get the question or stored question key from URL if it exists
     const urlParams = new URLSearchParams(window.location.search);
     const questionFromUrl = urlParams.get('q');
+    const storedQuestionKey = urlParams.get('stored');
     
-    if (questionFromUrl) {
+    if (storedQuestionKey) {
+      console.log('Found stored question key in URL:', storedQuestionKey);
+      
+      try {
+        // Retrieve the stored question data
+        const storedQuestionData = localStorage.getItem(storedQuestionKey);
+        if (storedQuestionData) {
+          const parsedData = JSON.parse(storedQuestionData);
+          
+          // Set up the messages with both question and answer
+          setMessages([
+            { role: 'user', content: parsedData.question },
+            { role: 'assistant', content: parsedData.answer }
+          ]);
+          
+          // Set the sources if available
+          if (parsedData.sources && Array.isArray(parsedData.sources)) {
+            setSources(parsedData.sources);
+          }
+          
+          // Set up the UI state for viewing a completed conversation
+          setShowButtons(true);
+          setIsLoading(false);
+          setError(null);
+          
+          // Clean the URL to prevent reloading on refresh
+          window.history.replaceState({}, document.title, '/chat');
+          
+          // Scroll to display the conversation after a short delay
+          setTimeout(scrollToBottom, 100);
+        }
+      } catch (error) {
+        console.error('Error loading stored question:', error);
+      }
+    } else if (questionFromUrl) {
       console.log('Found question in URL:', questionFromUrl);
       
       // Decode and set the input field with the question from URL
@@ -584,19 +631,8 @@ export default function ChatPage() {
       const timer = setTimeout(() => {
         console.log('Auto-submitting question:', decodedQuestion);
         
-        // Add the user message to the chat
-        const userMessage = { role: 'user' as const, content: decodedQuestion };
-        setMessages([userMessage]);
-        
-        // Start loading state
-        setError(null);
-        setIsLoading(true);
-        
-        // Call the completion API directly
-        complete(decodedQuestion);
-        
-        // Show buttons after submitting
-        setShowButtons(true);
+        // Submit the form
+        handleSubmit({ preventDefault: () => {} } as React.FormEvent<HTMLFormElement>);
         
         // Clean the URL to prevent resubmission on refresh
         window.history.replaceState({}, document.title, '/chat');
@@ -619,10 +655,6 @@ export default function ChatPage() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
-  };
 
   const formatMessage = (content: string) => {
     return (
@@ -808,6 +840,90 @@ export default function ChatPage() {
     }
   };
 
+  const [showSaveToCarpetaDialog, setShowSaveToCarpetaDialog] = useState(false);
+  const [carpetas, setCarpetas] = useState<Array<{id: string, name: string, timestamp: number, questions: any[]}>>([]); 
+  const [selectedCarpetaId, setSelectedCarpetaId] = useState<string | null>(null);
+  const [newCarpetaName, setNewCarpetaName] = useState('');
+  const [isCreatingCarpeta, setIsCreatingCarpeta] = useState(false);
+  
+  // Load carpetas
+  useEffect(() => {
+    try {
+      const savedCarpetas = localStorage.getItem('carpetas');
+      if (savedCarpetas) {
+        setCarpetas(JSON.parse(savedCarpetas));
+      }
+    } catch (error) {
+      console.error('Error loading carpetas from localStorage:', error);
+    }
+  }, []);
+
+  // Handle saving current question to carpeta
+  const saveQuestionToCarpeta = () => {
+    if (!selectedCarpetaId || messages.length < 2) return;
+    
+    // Get the question and answer from messages
+    const questionMessage = messages.find(msg => msg.role === 'user');
+    const answerMessage = messages.find(msg => msg.role === 'assistant');
+    
+    if (!questionMessage || !answerMessage) return;
+    
+    // Create the question object
+    const questionToSave = {
+      id: Date.now().toString(),
+      title: questionMessage.content.length > 60 
+        ? questionMessage.content.substring(0, 60) + '...' 
+        : questionMessage.content,
+      originalQuestion: questionMessage.content,
+      timestamp: Date.now(),
+      answer: answerMessage.content,
+      sources: sources || []
+    };
+    
+    // Update the selected carpeta
+    const updatedCarpetas = carpetas.map(carpeta => {
+      if (carpeta.id === selectedCarpetaId) {
+        return {
+          ...carpeta,
+          questions: [...carpeta.questions, questionToSave]
+        };
+      }
+      return carpeta;
+    });
+    
+    // Save updated carpetas
+    setCarpetas(updatedCarpetas);
+    localStorage.setItem('carpetas', JSON.stringify(updatedCarpetas));
+    
+    // Close dialog
+    setShowSaveToCarpetaDialog(false);
+    setSelectedCarpetaId(null);
+    
+    // Show success notification (you could add a toast notification here)
+    alert('Pregunta guardada en carpeta');
+  };
+  
+  // Handle creating a new carpeta
+  const handleCreateCarpeta = () => {
+    if (!newCarpetaName.trim()) return;
+    
+    const newCarpeta = {
+      id: Date.now().toString(),
+      name: newCarpetaName.trim(),
+      timestamp: Date.now(),
+      questions: []
+    };
+    
+    const updatedCarpetas = [...carpetas, newCarpeta];
+    setCarpetas(updatedCarpetas);
+    localStorage.setItem('carpetas', JSON.stringify(updatedCarpetas));
+    
+    // Select the newly created carpeta
+    setSelectedCarpetaId(newCarpeta.id);
+    setNewCarpetaName('');
+    setIsCreatingCarpeta(false);
+  };
+
   return (
     <>
       {/* Set overflow hidden at the document root level */}
@@ -830,7 +946,7 @@ export default function ChatPage() {
           left: 0,
           width: '100%',
           height: '62px',
-          backgroundColor: '#ffffff', // Removed transparency
+          backgroundColor: '#ffffff',
           boxShadow: '0 4px 10px rgba(0, 0, 0, 0.05)',
           zIndex: 9999,
           display: 'flex',
@@ -838,8 +954,7 @@ export default function ChatPage() {
           justifyContent: 'space-between',
           padding: '0 24px',
           boxSizing: 'border-box',
-          borderRadius: '0', // Removed rounded edges
-          // Removed backdropFilter blur
+          borderRadius: '0',
         }}
       >
         {/* Logo */}
@@ -919,10 +1034,10 @@ export default function ChatPage() {
               <span>Nueva Pregunta</span>
             </button>
             
-            <button style={styles.navButton}>
-              <Bookmark size={18} />
-              <span>Saved</span>
-            </button>
+            <Link href="/archivos" style={styles.navButton}>
+              <Folder size={18} />
+              <span>Archivos</span>
+            </Link>
           </div>
           
           <div style={styles.historySection}>
@@ -1053,7 +1168,24 @@ export default function ChatPage() {
                     height: '100%',
                     overflowY: 'auto' as const,
                   }}>
-                    <h1 style={styles.heading}>Como puedo ayudarte?</h1>
+                    <h1 style={{
+                      background: 'linear-gradient(135deg, #ec4899 30%, #8b5cf6 70%)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      backgroundClip: 'text',
+                      display: 'block',
+                      fontSize: '2.24rem',
+                      fontWeight: 'bold',
+                      lineHeight: '1.1',
+                      paddingBottom: '5px',
+                      paddingLeft: '15%',
+                      paddingRight: '15%',
+                      borderBottom: '1px solid transparent',
+                      wordWrap: 'break-word',
+                      maxWidth: '100%',
+                      marginBottom: '48px',
+                      textAlign: 'center'
+                    }}>Toda la información social, politica y economica de Chile en un solo lugar</h1>
                     
                     <div style={styles.cardGrid}>
                       {suggestionCards.map((card) => (
@@ -1336,6 +1468,27 @@ export default function ChatPage() {
                   width: '100%'
                 }}>
                   <button
+                    onClick={() => setShowSaveToCarpetaDialog(true)}
+                    style={{
+                      backgroundColor: '#8b5cf6',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '10px 16px',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+                    }}
+                    type="button"
+                  >
+                    <FolderPlus size={16} />
+                    Guardar en Carpeta
+                  </button>
+                  <button
                     onClick={downloadAnswerAsPdf}
                     style={{
                       backgroundColor: '#64748b',
@@ -1389,6 +1542,261 @@ export default function ChatPage() {
           </div>
         </div>
       </div>
+      
+      {/* Save to Carpeta Dialog */}
+      {showSaveToCarpetaDialog && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            padding: '24px',
+            width: '90%',
+            maxWidth: '500px',
+            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '20px'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <h3 style={{
+                fontSize: '20px',
+                fontWeight: 600,
+                color: '#1e293b',
+                margin: 0
+              }}>Guardar en Carpeta</h3>
+              <button
+                onClick={() => setShowSaveToCarpetaDialog(false)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  padding: '4px'
+                }}
+              >
+                <X size={24} color="#64748b" />
+              </button>
+            </div>
+
+            {/* Create new carpeta option */}
+            {!isCreatingCarpeta ? (
+              <button
+                onClick={() => setIsCreatingCarpeta(true)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '12px',
+                  backgroundColor: '#f3f4f6',
+                  border: '1px dashed #94a3b8',
+                  borderRadius: '8px',
+                  color: '#4b5563',
+                  fontWeight: 500,
+                  fontSize: '15px',
+                  width: '100%',
+                  cursor: 'pointer',
+                  justifyContent: 'center'
+                }}
+              >
+                <Plus size={18} />
+                <span>Nueva Carpeta</span>
+              </button>
+            ) : (
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              }}>
+                <input
+                  type="text"
+                  placeholder="Nombre de la carpeta"
+                  value={newCarpetaName}
+                  onChange={(e) => setNewCarpetaName(e.target.value)}
+                  autoFocus
+                  style={{
+                    padding: '10px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid #e5e7eb',
+                    fontSize: '15px',
+                    color: '#1e293b',
+                    width: '100%',
+                    boxSizing: 'border-box'
+                  }}
+                  onKeyDown={(e) => e.key === 'Enter' && handleCreateCarpeta()}
+                />
+                <div style={{
+                  display: 'flex',
+                  gap: '8px'
+                }}>
+                  <button
+                    onClick={handleCreateCarpeta}
+                    style={{
+                      flex: 1,
+                      padding: '8px 16px',
+                      backgroundColor: '#3b82f6',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontWeight: 500,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Crear
+                  </button>
+                  <button
+                    onClick={() => setIsCreatingCarpeta(false)}
+                    style={{
+                      flex: 1,
+                      padding: '8px 16px',
+                      backgroundColor: '#f1f5f9',
+                      color: '#64748b',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '6px',
+                      fontWeight: 500,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Carpetas list */}
+            <div style={{
+              borderTop: '1px solid #e5e7eb',
+              paddingTop: '16px'
+            }}>
+              <h4 style={{
+                fontSize: '16px',
+                fontWeight: 600,
+                color: '#4b5563',
+                margin: '0 0 12px 0'
+              }}>
+                Selecciona una carpeta
+              </h4>
+              
+              {carpetas.length === 0 ? (
+                <p style={{
+                  color: '#64748b',
+                  fontSize: '14px',
+                  textAlign: 'center',
+                  padding: '16px 0'
+                }}>
+                  No hay carpetas disponibles. Crea una nueva carpeta.
+                </p>
+              ) : (
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                  maxHeight: '300px',
+                  overflowY: 'auto'
+                }}>
+                  {carpetas.map(carpeta => (
+                    <div
+                      key={carpeta.id}
+                      onClick={() => setSelectedCarpetaId(carpeta.id)}
+                      style={{
+                        padding: '12px',
+                        borderRadius: '6px',
+                        border: '1px solid #e5e7eb',
+                        backgroundColor: carpeta.id === selectedCarpetaId ? '#eff6ff' : 'white',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px'
+                      }}
+                    >
+                      <div style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        backgroundColor: carpeta.id === selectedCarpetaId ? '#3b82f6' : '#f1f5f9',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <Folder size={18} color={carpeta.id === selectedCarpetaId ? 'white' : '#64748b'} />
+                      </div>
+                      <div>
+                        <p style={{
+                          margin: '0 0 2px 0',
+                          fontWeight: 500,
+                          color: '#1e293b',
+                          fontSize: '15px'
+                        }}>
+                          {carpeta.name}
+                        </p>
+                        <span style={{
+                          fontSize: '13px',
+                          color: '#64748b'
+                        }}>
+                          {carpeta.questions.length} {carpeta.questions.length === 1 ? 'pregunta' : 'preguntas'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: '12px',
+              borderTop: '1px solid #e5e7eb',
+              paddingTop: '16px'
+            }}>
+              <button
+                onClick={() => setShowSaveToCarpetaDialog(false)}
+                style={{
+                  padding: '10px 16px',
+                  backgroundColor: 'transparent',
+                  color: '#64748b',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '6px',
+                  fontWeight: 500,
+                  cursor: 'pointer'
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={saveQuestionToCarpeta}
+                disabled={!selectedCarpetaId}
+                style={{
+                  padding: '10px 16px',
+                  backgroundColor: selectedCarpetaId ? '#3b82f6' : '#94a3b8',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontWeight: 500,
+                  cursor: selectedCarpetaId ? 'pointer' : 'not-allowed'
+                }}
+              >
+                Guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 } 

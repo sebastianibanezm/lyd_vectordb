@@ -306,6 +306,58 @@
   color: #1d4ed8;
 }
 
+/* User message specific styling */
+.userMessageContent {
+  color: #000000;
+  text-align: center; /* Center text alignment */
+}
+
+.userMessageContent p {
+  margin: 0; /* Remove default paragraph margins for better centering */
+}
+
+.userMessageContent a {
+  color: #3b82f6;
+  text-decoration: underline;
+}
+
+.userMessageContent a:hover {
+  color: #2563eb;
+}
+
+.userMessageContent code:not(pre code) {
+  background-color: rgba(0, 0, 0, 0.1);
+  color: #000000;
+}
+
+/* Bot message specific styling */
+.botMessageContent {
+  color: #1e293b;
+  overflow: visible;
+  width: 100%;
+  word-break: break-word;
+  max-width: 100%;
+  text-align: left;
+}
+
+.botMessageContent p {
+  margin: 0.3rem 0; /* Reduced margin for paragraphs */
+  padding: 0;
+  text-indent: 0; /* Prevent text indentation */
+}
+
+/* Fix for list styling in bot messages */
+.botMessageContent ul, 
+.botMessageContent ol {
+  padding-left: 1.2rem; /* Reduced padding for lists */
+  margin: 0.3rem 0; /* Reduced margin */
+}
+
+.botMessageContent li {
+  margin: 0.2rem 0; /* Reduced margin for list items */
+  padding: 0;
+}
+
 /* Style tables */
 .markdownContent table {
   border-collapse: collapse;
@@ -348,13 +400,26 @@
 
 /* Scrollable container for markdown content in bot messages */
 .botMessageScrollable {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+  scrollbar-width: none;
+  overflow: visible !important; /* Make content fully visible */
+  display: block;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+}
+
+.botMessageScrollable > div {
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow: visible !important;
 }
 
 .botMessageScrollable::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 .botMessageScrollable::-webkit-scrollbar-track {

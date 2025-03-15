@@ -40,7 +40,6 @@ export default function Home() {
           zIndex: 9999,
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
           padding: '0 24px',
           boxSizing: 'border-box',
           borderRadius: '0 0 16px 16px',
@@ -48,31 +47,60 @@ export default function Home() {
         }}
       >
         {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '150px' }}>
           <div style={{ 
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
           }}>
-            <img 
-              src="/logo.png" 
-              alt="Agora Logo" 
-              style={{ 
-                width: '48px', 
-                height: '48px',
-                objectFit: 'contain',
-                filter: 'grayscale(100%)'
-              }}
-            />
+            {/* Logo removed from the home page as requested */}
           </div>
-          <span style={{ fontWeight: 'bold', fontSize: '18px', color: '#1e293b' }}>Agora</span>
+        </div>
+
+        {/* Middle navigation items - absolutely positioned for perfect centering */}
+        <div style={{ 
+          position: 'absolute',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '32px',
+          justifyContent: 'center'
+        }}>
+          <a href="#" style={{ 
+            color: '#000000', 
+            fontWeight: 500,
+            textDecoration: 'none',
+            whiteSpace: 'nowrap',
+            fontSize: '16px'
+          }}>
+            Producto
+          </a>
+          <a href="#" style={{ 
+            color: '#000000', 
+            fontWeight: 500,
+            textDecoration: 'none',
+            whiteSpace: 'nowrap',
+            fontSize: '16px'
+          }}>
+            Precios
+          </a>
+          <a href="#" style={{ 
+            color: '#000000', 
+            fontWeight: 500,
+            textDecoration: 'none',
+            whiteSpace: 'nowrap',
+            fontSize: '16px'
+          }}>
+            Contacto
+          </a>
         </div>
 
         {/* Right side with links and button */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexShrink: 0, marginLeft: 'auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <a href="#" style={{ 
-              color: '#475569', 
+              color: '#000000', 
               fontWeight: 500,
               textDecoration: 'none',
               whiteSpace: 'nowrap',
@@ -81,25 +109,48 @@ export default function Home() {
               Iniciar Sesión
             </a>
             <button style={{ 
-              background: 'linear-gradient(to right, #ec4899, #8b5cf6)', 
-              color: 'white', 
+              background: 'white',
+              color: 'black', 
               padding: '8px 20px', 
-              borderRadius: '8px',
+              borderRadius: '0',
               fontWeight: 600,
               fontSize: '16px',
-              border: 'none',
+              border: '2px solid #000000',
               cursor: 'pointer',
               whiteSpace: 'nowrap',
-              transition: 'background 0.3s ease',
-              boxShadow: '0 2px 10px rgba(236, 72, 153, 0.3)'
+              transition: 'all 0.3s ease',
+              position: 'relative',
+              boxSizing: 'border-box'
             }}
             onMouseOver={(e) => {
-              e.currentTarget.style.background = 'linear-gradient(to right, #d946ef, #8b5cf6)';
+              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
             }}
             onMouseOut={(e) => {
-              e.currentTarget.style.background = 'linear-gradient(to right, #ec4899, #8b5cf6)';
+              e.currentTarget.style.backgroundColor = 'white';
             }}
             >
+              {/* Pink line at the top of the button */}
+              <div style={{
+                position: 'absolute',
+                top: '-4px',
+                left: '2px',
+                width: 'calc(100% - 0px)',
+                height: '3px',
+                backgroundColor: '#ec4899',
+                zIndex: 1
+              }}></div>
+              
+              {/* Pink line at the right side of the button */}
+              <div style={{
+                position: 'absolute',
+                top: '-4px',
+                right: '-4px',
+                width: '3px',
+                height: 'calc(100% + 4px)',
+                backgroundColor: '#ec4899',
+                zIndex: 1
+              }}></div>
+              
               Registrate
             </button>
           </div>
@@ -147,7 +198,7 @@ export default function Home() {
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(255, 255, 255, 0.7)',
+            backgroundColor: 'rgba(255, 255, 255, 0.5)',
             zIndex: -1,
           }}
         />
@@ -175,52 +226,86 @@ export default function Home() {
                     {/* This heading is positioned exactly in the middle */}
                     <h1 
                       style={{
-                        background: 'linear-gradient(135deg, #ec4899 30%, #8b5cf6 70%)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        backgroundClip: 'text',
                         display: 'block',
-                        fontSize: '2.8rem',
-                        fontWeight: 'bold',
                         lineHeight: '1.1',
                         paddingBottom: '5px',
                         borderBottom: '1px solid transparent',
-                        wordWrap: 'break-word',
                         maxWidth: '100%',
-                        marginBottom: '0'
+                        marginBottom: '0',
+                        textAlign: 'center'
                       }}
                     >
-                      Descubre la historia y el presente de Chile
-                    </h1>
-                    {/* Elements below the centered heading */}
-                    <div style={{ 
-                      paddingTop: '20px',
-                      paddingBottom: '20px',
-                      borderBottom: '1px solid transparent'
-                    }}>
-                      <p style={{ 
-                        maxWidth: '100%',
-                        fontSize: '1.29rem',
-                        color: '#334155',
-                        margin: '0'
+                      <div style={{ 
+                        width: '70%',
+                        margin: '0 auto'
                       }}>
-                        Pregunta sobre política, economía y legislación chilena
-                      </p>
-                    </div>
+                        <img 
+                          src="/logo-long.png" 
+                          alt="Agora - Descubre la historia y el presente de Chile" 
+                          style={{ 
+                            width: '100%',
+                            height: 'auto',
+                            objectFit: 'contain',
+                            display: 'block'
+                          }}
+                        />
+                      </div>
+                    </h1>
                     
-                    {/* SEARCH FORM - Square with rounded edges */}
+                    {/* Unified container for text and search input */}
                     <div style={{ 
-                      width: '80%',
-                      paddingTop: '20px',
-                      maxWidth: '80%'
+                      width: '70%',
+                      margin: '20px auto 0',
+                      position: 'relative',
+                      padding: '24px',
+                      backgroundColor: 'rgba(255, 255, 255, 0.85)',
+                      borderRadius: '0',
+                      border: '2px solid #000000',
+                      boxSizing: 'border-box'
                     }}>
-                      <form onSubmit={handleSubmit}>
+                      {/* Pink line at the top of the container */}
+                      <div style={{
+                        position: 'absolute',
+                        top: '-4px', /* Position outside the black border */
+                        left: '2px', /* Account for left black border */
+                        width: 'calc(100% - 0px)', /* Extend to the right edge + 4px */
+                        height: '2px',
+                        backgroundColor: '#ec4899',
+                        zIndex: 1
+                      }}></div>
+                      
+                      {/* Pink line at the right side of the container */}
+                      <div style={{
+                        position: 'absolute',
+                        top: '-4px', /* Extend all the way to the top */
+                        right: '-4px', /* Position outside the black border */
+                        width: '2px',
+                        height: 'calc(100% + 4px)', /* Extend to touch the top pink line */
+                        backgroundColor: '#ec4899',
+                        zIndex: 1
+                      }}></div>
+                      
+                      {/* Text paragraph */}
+                      <p style={{ 
+                        width: '100%',
+                        fontSize: '1.29rem',
+                        color: '#000000',
+                        margin: '0 0 24px 0',
+                        fontWeight: 'bold',
+                        textAlign: 'left'
+                      }}>
+                        Leyes, reportajes e investigaciones — todo lo que necesitas para entender Chile.
+                      </p>
+                      
+                      {/* SEARCH FORM - Square with rounded edges */}
+                      <form onSubmit={handleSubmit} style={{ width: '100%' }}>
                         <div style={{ 
                           display: 'flex',
                           width: '100%',
                           alignItems: 'center',
                           boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-                          maxWidth: '100%'
+                          margin: 0,
+                          padding: 0
                         }}>
                           {/* Input field - Square with rounded edges */}
                           <input
@@ -229,35 +314,39 @@ export default function Home() {
                             value={question}
                             onChange={(e) => setQuestion(e.target.value)}
                             style={{
-                              height: '36px',
+                              height: '42px',
                               flex: '1',
                               border: '1px solid #e2e8f0',
                               borderRight: 'none',
-                              borderTopLeftRadius: '8px',
-                              borderBottomLeftRadius: '8px',
+                              borderTopLeftRadius: '0',
+                              borderBottomLeftRadius: '0',
                               padding: '0 16px',
                               fontSize: '14px',
                               outline: 'none',
                               backgroundColor: 'white',
-                              color: 'black'
+                              color: 'black',
+                              margin: 0,
+                              boxSizing: 'border-box'
                             }}
                           />
                           
-                          {/* Search button - Icon only, lighter gray */}
+                          {/* Search button - Icon only, black */}
                           <button 
                             type="submit"
                             style={{
-                              height: '36px',
-                              backgroundColor: '#94a3b8',
+                              height: '42px',
+                              backgroundColor: '#000000',
                               color: 'white',
                               border: 'none',
-                              borderTopRightRadius: '8px',
-                              borderBottomRightRadius: '8px',
-                              padding: '0 12px',
+                              borderTopRightRadius: '0',
+                              borderBottomRightRadius: '0',
+                              padding: '0 16px',
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
-                              justifyContent: 'center'
+                              justifyContent: 'center',
+                              margin: 0,
+                              boxSizing: 'border-box'
                             }}
                           >
                             {/* Magnifying glass icon only */}
@@ -307,21 +396,20 @@ export default function Home() {
             }}>
               {/* First set of logos */}
               {[
-                { name: 'Libertad y Desarrollo', color: '#000000', logo: '/logo_lyd.png' },
-                { name: 'Banco Central', color: '#003087', logo: '/logo_banco_central.png' },
-                { name: 'Ministerio de Hacienda', color: '#00843D' },
-                { name: 'Universidad de Chile', color: '#0032A0' },
-                { name: 'Cámara de Diputados', color: '#B22234', logo: '/logo_diputados.png' },
-                { name: 'Pontificia Universidad Católica', color: '#8A1538' },
-                { name: 'CEPAL', color: '#009EDB', logo: '/logo_cepal.png' },
-                { name: 'BID', color: '#F7A800' },
-                { name: 'Ciper', color: '#E53935', logo: '/logo_ciper.png' },
-                { name: 'BCN', color: '#1565C0', logo: '/bcn_logo.png' },
-                { name: 'Congreso Nacional', color: '#001489' },
-                { name: 'CEP', color: '#652C8F', logo: '/logo_CEP.png' }
+                { name: 'Libertad y Desarrollo', color: '#000000', logo: '/logos/lyd_logo.png' },
+                { name: 'Banco Central', color: '#003087', logo: '/logos/banco_central_logo.png' },
+                { name: 'Universidad de Chile', color: '#0032A0', logo: '/logos/u_chile_logo.png' },
+                { name: 'Cámara de Diputados', color: '#B22234', logo: '/logos/camara_diputados_logo.png' },
+                { name: 'Pontificia Universidad Católica', color: '#8A1538', logo: '/logos/puc_logo.png' },
+                { name: 'CEPAL', color: '#009EDB', logo: '/logos/cepal_logo.png' },
+                { name: 'BID', color: '#F7A800', logo: '/logos/bid_logo.png' },
+                { name: 'Ciper', color: '#E53935', logo: '/logos/ciper_logo.png' },
+                { name: 'BCN', color: '#1565C0', logo: '/logos/bcn_logo.png' },
+                { name: 'Senado', color: '#001489', logo: '/logos/senado_logo.png' },
+                { name: 'CEP', color: '#652C8F', logo: '/logos/cep_logo.png' }
               ].map((logo, index) => (
                 <div key={`logo-1-${index}`} style={{
-                  minWidth: '100px',
+                  width: '100px',
                   height: '100px',
                   margin: '0 25px',
                   display: 'flex',
@@ -337,8 +425,9 @@ export default function Home() {
                       src={logo.logo} 
                       alt={logo.name} 
                       style={{ 
-                        height: '65px',
-                        maxWidth: '80%',
+                        maxHeight: ['Banco Central', 'Cámara de Diputados', 'Ciper', 'BCN'].includes(logo.name) ? '85px' : '65px',
+                        maxWidth: ['Banco Central', 'Cámara de Diputados', 'Ciper', 'BCN'].includes(logo.name) ? '95%' : '80%',
+                        width: 'auto',
                         objectFit: 'contain',
                         filter: 'grayscale(100%)'
                       }}
@@ -347,10 +436,14 @@ export default function Home() {
                     <div style={{ 
                       color: logo.color,
                       fontWeight: '600',
-                      fontSize: '16px',
+                      fontSize: '14px',
                       textAlign: 'center',
                       width: '100%',
-                      padding: '0 5px'
+                      padding: '0 2px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      height: '100%'
                     }}>
                       {logo.name}
                     </div>
@@ -360,21 +453,20 @@ export default function Home() {
               
               {/* Duplicate set of logos to ensure smooth infinite scrolling */}
               {[
-                { name: 'Libertad y Desarrollo', color: '#000000', logo: '/logo_lyd.png' },
-                { name: 'Banco Central', color: '#003087', logo: '/logo_banco_central.png' },
-                { name: 'Ministerio de Hacienda', color: '#00843D' },
-                { name: 'Universidad de Chile', color: '#0032A0' },
-                { name: 'Cámara de Diputados', color: '#B22234', logo: '/logo_diputados.png' },
-                { name: 'Pontificia Universidad Católica', color: '#8A1538' },
-                { name: 'CEPAL', color: '#009EDB', logo: '/logo_cepal.png' },
-                { name: 'BID', color: '#F7A800' },
-                { name: 'Ciper', color: '#E53935', logo: '/logo_ciper.png' },
-                { name: 'BCN', color: '#1565C0', logo: '/bcn_logo.png' },
-                { name: 'Congreso Nacional', color: '#001489' },
-                { name: 'CEP', color: '#652C8F', logo: '/logo_CEP.png' }
+                { name: 'Libertad y Desarrollo', color: '#000000', logo: '/logos/lyd_logo.png' },
+                { name: 'Banco Central', color: '#003087', logo: '/logos/banco_central_logo.png' },
+                { name: 'Universidad de Chile', color: '#0032A0', logo: '/logos/u_chile_logo.png' },
+                { name: 'Cámara de Diputados', color: '#B22234', logo: '/logos/camara_diputados_logo.png' },
+                { name: 'Pontificia Universidad Católica', color: '#8A1538', logo: '/logos/puc_logo.png' },
+                { name: 'CEPAL', color: '#009EDB', logo: '/logos/cepal_logo.png' },
+                { name: 'BID', color: '#F7A800', logo: '/logos/bid_logo.png' },
+                { name: 'Ciper', color: '#E53935', logo: '/logos/ciper_logo.png' },
+                { name: 'BCN', color: '#1565C0', logo: '/logos/bcn_logo.png' },
+                { name: 'Senado', color: '#001489', logo: '/logos/senado_logo.png' },
+                { name: 'CEP', color: '#652C8F', logo: '/logos/cep_logo.png' }
               ].map((logo, index) => (
                 <div key={`logo-2-${index}`} style={{
-                  minWidth: '100px',
+                  width: '100px',
                   height: '100px',
                   margin: '0 25px',
                   display: 'flex',
@@ -390,8 +482,9 @@ export default function Home() {
                       src={logo.logo} 
                       alt={logo.name} 
                       style={{ 
-                        height: '65px',
-                        maxWidth: '80%',
+                        maxHeight: ['Banco Central', 'Cámara de Diputados', 'Ciper', 'BCN'].includes(logo.name) ? '85px' : '65px',
+                        maxWidth: ['Banco Central', 'Cámara de Diputados', 'Ciper', 'BCN'].includes(logo.name) ? '95%' : '80%',
+                        width: 'auto',
                         objectFit: 'contain',
                         filter: 'grayscale(100%)'
                       }}
@@ -400,10 +493,14 @@ export default function Home() {
                     <div style={{ 
                       color: logo.color,
                       fontWeight: '600',
-                      fontSize: '16px',
+                      fontSize: '14px',
                       textAlign: 'center',
                       width: '100%',
-                      padding: '0 5px'
+                      padding: '0 2px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      height: '100%'
                     }}>
                       {logo.name}
                     </div>
@@ -431,6 +528,198 @@ export default function Home() {
             `}</style>
           </section>
 
+          {/* Testimonials Section */}
+          <section style={{
+            padding: '60px 0',
+            backgroundColor: 'white',
+            position: 'relative'
+          }}>
+            <div style={{
+              maxWidth: '1200px',
+              margin: '0 auto',
+              padding: '0 24px'
+            }}>
+              {/* Testimonials Container */}
+              <div style={{
+                display: 'flex',
+                flexDirection: 'row',
+                gap: '40px',
+                justifyContent: 'center',
+                flexWrap: 'wrap'
+              }}>
+                {/* Testimonial 1 */}
+                <div style={{ 
+                  width: 'calc(50% - 20px)',
+                  minWidth: '300px',
+                  position: 'relative',
+                  padding: '24px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.85)',
+                  borderRadius: '0',
+                  border: '2px solid #000000',
+                  boxSizing: 'border-box'
+                }}>
+                  {/* Pink line at the top of the container */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '-4px',
+                    left: '2px',
+                    width: 'calc(100% - 0px)',
+                    height: '2px',
+                    backgroundColor: '#ec4899',
+                    zIndex: 1
+                  }}></div>
+                  
+                  {/* Pink line at the right side of the container */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '-4px',
+                    right: '-4px',
+                    width: '2px',
+                    height: 'calc(100% + 4px)',
+                    backgroundColor: '#ec4899',
+                    zIndex: 1
+                  }}></div>
+
+                  {/* Testimonial Content */}
+                  <div style={{
+                    display: 'flex',
+                    gap: '20px',
+                    alignItems: 'center'
+                  }}>
+                    {/* Person Image */}
+                    <div style={{
+                      width: '80px',
+                      height: '80px',
+                      borderRadius: '40px',
+                      overflow: 'hidden',
+                      flexShrink: 0
+                    }}>
+                      <img 
+                        src="/testimonial/testimonial_1.png" 
+                        alt="Profesor Universidad de Chile" 
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          filter: 'grayscale(100%)'
+                        }}
+                      />
+                    </div>
+
+                    {/* Testimonial Text */}
+                    <div>
+                      <p style={{
+                        fontStyle: 'italic',
+                        marginBottom: '12px',
+                        fontSize: '16px',
+                        lineHeight: '1.5'
+                      }}>
+                        "Agora ha revolucionado la forma en que mis estudiantes investigan sobre política chilena. La precisión de las respuestas y la facilidad de uso hacen que la información sea accesible para todos."
+                      </p>
+                      <p style={{
+                        fontWeight: 'bold',
+                        fontSize: '16px'
+                      }}>
+                        Carlos Rodríguez
+                      </p>
+                      <p style={{
+                        fontSize: '14px',
+                        color: '#64748b'
+                      }}>
+                        Profesor de Ciencias Políticas
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Testimonial 2 */}
+                <div style={{ 
+                  width: 'calc(50% - 20px)',
+                  minWidth: '300px',
+                  position: 'relative',
+                  padding: '24px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.85)',
+                  borderRadius: '0',
+                  border: '2px solid #000000',
+                  boxSizing: 'border-box'
+                }}>
+                  {/* Pink line at the top of the container */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '-4px',
+                    left: '2px',
+                    width: 'calc(100% - 0px)',
+                    height: '2px',
+                    backgroundColor: '#ec4899',
+                    zIndex: 1
+                  }}></div>
+                  
+                  {/* Pink line at the right side of the container */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '-4px',
+                    right: '-4px',
+                    width: '2px',
+                    height: 'calc(100% + 4px)',
+                    backgroundColor: '#ec4899',
+                    zIndex: 1
+                  }}></div>
+
+                  {/* Testimonial Content */}
+                  <div style={{
+                    display: 'flex',
+                    gap: '20px',
+                    alignItems: 'center'
+                  }}>
+                    {/* Person Image */}
+                    <div style={{
+                      width: '80px',
+                      height: '80px',
+                      borderRadius: '40px',
+                      overflow: 'hidden',
+                      flexShrink: 0
+                    }}>
+                      <img 
+                        src="/testimonial/testimonial_2.jpg" 
+                        alt="Periodista" 
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          filter: 'grayscale(100%)'
+                        }}
+                      />
+                    </div>
+
+                    {/* Testimonial Text */}
+                    <div>
+                      <p style={{
+                        fontStyle: 'italic',
+                        marginBottom: '12px',
+                        fontSize: '16px',
+                        lineHeight: '1.5'
+                      }}>
+                        "Como periodista, Agora me permite verificar datos económicos y políticos rápidamente. Las fuentes están claramente citadas, lo que facilita mi trabajo de investigación y redacción."
+                      </p>
+                      <p style={{
+                        fontWeight: 'bold',
+                        fontSize: '16px'
+                      }}>
+                        Marta Jiménez
+                      </p>
+                      <p style={{
+                        fontSize: '14px',
+                        color: '#64748b'
+                      }}>
+                        Periodista Investigadora
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
           {/* Features Section - RESPONSIVE GRID */}
           <section style={{
             padding: '64px 0',
@@ -452,7 +741,7 @@ export default function Home() {
                   fontWeight: 'bold',
                   color: '#0f172a',
                   marginBottom: '16px'
-                }}>Conocimiento político y económico al alcance de todos</h2>
+                }}>Conocimiento político, legislativo y económico al alcance de todos</h2>
                 <p style={{
                   fontSize: '18px',
                   color: '#64748b',
@@ -471,40 +760,59 @@ export default function Home() {
                 {/* Card 1: Semantic Search */}
                 <div 
                   style={{
-                    backgroundColor: 'white',
-                    borderRadius: '12px',
-                    border: '1px solid #e2e8f0',
-                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                    padding: '24px',
+                    width: '100%',
+                    minWidth: '300px',
                     position: 'relative',
-                    overflow: 'hidden',
+                    padding: '24px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+                    borderRadius: '0',
+                    border: '2px solid #000000',
+                    boxSizing: 'border-box',
                     transition: 'transform 0.3s ease'
                   }}
                   onMouseOver={(e) => {
-                    // Add the pseudo overlay
-                    e.currentTarget.style.backgroundColor = 'rgba(252, 231, 243, 0.6)'; // Very light pink background
                     e.currentTarget.style.transform = 'translateY(-5px)'; // Small lift effect
                   }}
                   onMouseOut={(e) => {
-                    // Remove the overlay
-                    e.currentTarget.style.backgroundColor = 'white';
                     e.currentTarget.style.transform = 'translateY(0)';
                   }}
                 >
+                  {/* Pink line at the top of the container */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '-4px',
+                    left: '2px',
+                    width: 'calc(100% - 0px)',
+                    height: '2px',
+                    backgroundColor: '#ec4899',
+                    zIndex: 1
+                  }}></div>
+                  
+                  {/* Pink line at the right side of the container */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '-4px',
+                    right: '-4px',
+                    width: '2px',
+                    height: 'calc(100% + 4px)',
+                    backgroundColor: '#ec4899',
+                    zIndex: 1
+                  }}></div>
+
                   {/* Icon */}
                   <div style={{
-                    width: '56px',
-                    height: '56px',
-                    borderRadius: '8px',
-                    backgroundColor: '#eff6ff',
+                    width: '72px',
+                    height: '72px',
+                    borderRadius: '0',
+                    backgroundColor: '#f8f8f8',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    marginBottom: '24px'
+                    margin: '0 auto 24px auto'
                   }}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M11 19C15.4183 19 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19Z" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M21 21L16.65 16.65" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M11 19C15.4183 19 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19Z" stroke="#000000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M21 21L16.65 16.65" stroke="#000000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </div>
                   
@@ -513,55 +821,76 @@ export default function Home() {
                     fontSize: '20px',
                     fontWeight: '600',
                     color: '#1e293b',
-                    marginBottom: '12px'
+                    marginBottom: '12px',
+                    textAlign: 'center'
                   }}>Datos Completos</h3>
                   <p style={{
                     color: '#64748b',
                     fontSize: '16px',
-                    lineHeight: '1.5'
+                    lineHeight: '1.5',
+                    textAlign: 'center'
                   }}>Accede a una extensa base de datos sobre política, economía y legislación chilena actualizada constantemente.</p>
                 </div>
                 
                 {/* Card 2: PDF Processing */}
                 <div 
                   style={{
-                    backgroundColor: 'white',
-                    borderRadius: '12px',
-                    border: '1px solid #e2e8f0',
-                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                    padding: '24px',
+                    width: '100%',
+                    minWidth: '300px',
                     position: 'relative',
-                    overflow: 'hidden',
+                    padding: '24px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+                    borderRadius: '0',
+                    border: '2px solid #000000',
+                    boxSizing: 'border-box',
                     transition: 'transform 0.3s ease'
                   }}
                   onMouseOver={(e) => {
-                    // Add the pseudo overlay
-                    e.currentTarget.style.backgroundColor = 'rgba(252, 231, 243, 0.6)'; // Very light pink background
                     e.currentTarget.style.transform = 'translateY(-5px)'; // Small lift effect
                   }}
                   onMouseOut={(e) => {
-                    // Remove the overlay
-                    e.currentTarget.style.backgroundColor = 'white';
                     e.currentTarget.style.transform = 'translateY(0)';
                   }}
                 >
+                  {/* Pink line at the top of the container */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '-4px',
+                    left: '2px',
+                    width: 'calc(100% - 0px)',
+                    height: '2px',
+                    backgroundColor: '#ec4899',
+                    zIndex: 1
+                  }}></div>
+                  
+                  {/* Pink line at the right side of the container */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '-4px',
+                    right: '-4px',
+                    width: '2px',
+                    height: 'calc(100% + 4px)',
+                    backgroundColor: '#ec4899',
+                    zIndex: 1
+                  }}></div>
+
                   {/* Icon */}
                   <div style={{
-                    width: '56px',
-                    height: '56px',
-                    borderRadius: '8px',
-                    backgroundColor: '#eff6ff',
+                    width: '72px',
+                    height: '72px',
+                    borderRadius: '0',
+                    backgroundColor: '#f8f8f8',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    marginBottom: '24px'
+                    margin: '0 auto 24px auto'
                   }}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M14 2V8H20" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M16 13H8" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M16 17H8" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M10 9H9H8" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="#000000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M14 2V8H20" stroke="#000000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M16 13H8" stroke="#000000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M16 17H8" stroke="#000000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M10 9H9H8" stroke="#000000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </div>
                   
@@ -570,53 +899,74 @@ export default function Home() {
                     fontSize: '20px',
                     fontWeight: '600',
                     color: '#1e293b',
-                    marginBottom: '12px'
+                    marginBottom: '12px',
+                    textAlign: 'center'
                   }}>Análisis Profundo</h3>
                   <p style={{
                     color: '#64748b',
                     fontSize: '16px',
-                    lineHeight: '1.5'
+                    lineHeight: '1.5',
+                    textAlign: 'center'
                   }}>Obtén análisis detallados que te ayudarán a comprender mejor la realidad política y económica de Chile.</p>
                 </div>
                 
                 {/* Card 3: AI-Powered Analysis */}
                 <div 
                   style={{
-                    backgroundColor: 'white',
-                    borderRadius: '12px',
-                    border: '1px solid #e2e8f0',
-                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                    padding: '24px',
+                    width: '100%',
+                    minWidth: '300px',
                     position: 'relative',
-                    overflow: 'hidden',
+                    padding: '24px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+                    borderRadius: '0',
+                    border: '2px solid #000000',
+                    boxSizing: 'border-box',
                     transition: 'transform 0.3s ease'
                   }}
                   onMouseOver={(e) => {
-                    // Add the pseudo overlay
-                    e.currentTarget.style.backgroundColor = 'rgba(252, 231, 243, 0.6)'; // Very light pink background
                     e.currentTarget.style.transform = 'translateY(-5px)'; // Small lift effect
                   }}
                   onMouseOut={(e) => {
-                    // Remove the overlay
-                    e.currentTarget.style.backgroundColor = 'white';
                     e.currentTarget.style.transform = 'translateY(0)';
                   }}
                 >
+                  {/* Pink line at the top of the container */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '-4px',
+                    left: '2px',
+                    width: 'calc(100% - 0px)',
+                    height: '2px',
+                    backgroundColor: '#ec4899',
+                    zIndex: 1
+                  }}></div>
+                  
+                  {/* Pink line at the right side of the container */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '-4px',
+                    right: '-4px',
+                    width: '2px',
+                    height: 'calc(100% + 4px)',
+                    backgroundColor: '#ec4899',
+                    zIndex: 1
+                  }}></div>
+
                   {/* Icon */}
                   <div style={{
-                    width: '56px',
-                    height: '56px',
-                    borderRadius: '8px',
-                    backgroundColor: '#eff6ff',
+                    width: '72px',
+                    height: '72px',
+                    borderRadius: '0',
+                    backgroundColor: '#f8f8f8',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    marginBottom: '24px'
+                    margin: '0 auto 24px auto'
                   }}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2Z" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M2 12H22" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M12 2C14.5013 4.73835 15.9228 8.29203 16 12C15.9228 15.708 14.5013 19.2616 12 22C9.49872 19.2616 8.07725 15.708 8 12C8.07725 8.29203 9.49872 4.73835 12 2V2Z" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2Z" stroke="#000000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M2 12H22" stroke="#000000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M12 2C14.5013 4.73835 15.9228 8.29203 16 12C15.9228 15.708 14.5013 19.2616 12 22C9.49872 19.2616 8.07725 15.708 8 12C8.07725 8.29203 9.49872 4.73835 12 2V2Z" stroke="#000000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </div>
                   
@@ -625,12 +975,14 @@ export default function Home() {
                     fontSize: '20px',
                     fontWeight: '600',
                     color: '#1e293b',
-                    marginBottom: '12px'
+                    marginBottom: '12px',
+                    textAlign: 'center'
                   }}>Acceso Universal</h3>
                   <p style={{
                     color: '#64748b',
                     fontSize: '16px',
-                    lineHeight: '1.5'
+                    lineHeight: '1.5',
+                    textAlign: 'center'
                   }}>Diseñado para ser utilizado por cualquier persona, sin importar su nivel de conocimiento técnico o político.</p>
                 </div>
               </div>
@@ -657,55 +1009,56 @@ export default function Home() {
             maxWidth: '1280px',
             margin: '0 auto',
           }}>
-            {/* Top section with horizontal links */}
             <div style={{ 
               display: 'flex', 
-              flexDirection: 'row', 
-              flexWrap: 'wrap',
               justifyContent: 'space-between',
-              gap: '32px'
+              alignItems: 'center'
             }}>
-              <div style={{ minWidth: '150px' }}>
-                <h4 className="font-semibold text-slate-900 text-lg mb-4">Product</h4>
-                <ul className="space-y-2">
-                  <li><a href="#" className="text-slate-600 hover:text-blue-600 transition-colors">Features</a></li>
-                  <li><a href="#" className="text-slate-600 hover:text-blue-600 transition-colors">Pricing</a></li>
-                  <li><a href="#" className="text-slate-600 hover:text-blue-600 transition-colors">Documentation</a></li>
-                  <li><a href="#" className="text-slate-600 hover:text-blue-600 transition-colors">Changelog</a></li>
-                </ul>
+              {/* Logo on the left side of footer */}
+              <div style={{ width: '150px' }}>
+                <img 
+                  src="/logo.png" 
+                  alt="Agora Logo" 
+                  style={{ 
+                    width: '100%',
+                    height: 'auto',
+                    objectFit: 'contain'
+                  }}
+                />
               </div>
-              <div style={{ minWidth: '150px' }}>
-                <h4 className="font-semibold text-slate-900 text-lg mb-4">Company</h4>
-                <ul className="space-y-2">
-                  <li><a href="#" className="text-slate-600 hover:text-blue-600 transition-colors">About</a></li>
-                  <li><a href="#" className="text-slate-600 hover:text-blue-600 transition-colors">Blog</a></li>
-                  <li><a href="#" className="text-slate-600 hover:text-blue-600 transition-colors">Careers</a></li>
-                  <li><a href="#" className="text-slate-600 hover:text-blue-600 transition-colors">Contact</a></li>
-                </ul>
+
+              {/* Navigation links on the right side */}
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column',
+                gap: '16px',
+                alignItems: 'flex-start' 
+              }}>
+                <a href="#" style={{ 
+                  color: '#000000', 
+                  fontWeight: 500,
+                  textDecoration: 'none',
+                  fontSize: '16px'
+                }}>
+                  Producto
+                </a>
+                <a href="#" style={{ 
+                  color: '#000000', 
+                  fontWeight: 500,
+                  textDecoration: 'none',
+                  fontSize: '16px'
+                }}>
+                  Precios
+                </a>
+                <a href="#" style={{ 
+                  color: '#000000', 
+                  fontWeight: 500,
+                  textDecoration: 'none',
+                  fontSize: '16px'
+                }}>
+                  Contacto
+                </a>
               </div>
-              <div style={{ minWidth: '150px' }}>
-                <h4 className="font-semibold text-slate-900 text-lg mb-4">Resources</h4>
-                <ul className="space-y-2">
-                  <li><a href="#" className="text-slate-600 hover:text-blue-600 transition-colors">Tutorials</a></li>
-                  <li><a href="#" className="text-slate-600 hover:text-blue-600 transition-colors">Support</a></li>
-                  <li><a href="#" className="text-slate-600 hover:text-blue-600 transition-colors">API Reference</a></li>
-                  <li><a href="#" className="text-slate-600 hover:text-blue-600 transition-colors">Community</a></li>
-                </ul>
-              </div>
-              <div style={{ minWidth: '150px' }}>
-                <h4 className="font-semibold text-slate-900 text-lg mb-4">Legal</h4>
-                <ul className="space-y-2">
-                  <li><a href="#" className="text-slate-600 hover:text-blue-600 transition-colors">Privacy</a></li>
-                  <li><a href="#" className="text-slate-600 hover:text-blue-600 transition-colors">Terms</a></li>
-                  <li><a href="#" className="text-slate-600 hover:text-blue-600 transition-colors">Security</a></li>
-                  <li><a href="#" className="text-slate-600 hover:text-blue-600 transition-colors">Cookies</a></li>
-                </ul>
-              </div>
-            </div>
-            
-            {/* Copyright section */}
-            <div className="mt-8 pt-6 border-t border-slate-200 text-center">
-              <p className="text-slate-500">© 2023 Agora. All rights reserved.</p>
             </div>
           </footer>
         </div>

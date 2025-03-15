@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { Send, SquarePen, Bookmark, RefreshCcw, X, FolderPlus, Plus, Folder, Archive } from 'lucide-react';
+import React from 'react';
+import { Send, Search, SquarePen, Bookmark, RefreshCcw, X, FolderPlus, Plus, Folder, Archive, MessageSquare } from 'lucide-react';
 import { useCompletion } from "@ai-sdk/react";
 import Link from "next/link";
 import ReactMarkdown from 'react-markdown';
@@ -172,19 +173,24 @@ const styles = {
   textarea: {
     flex: 1,
     height: '38px',
+    minHeight: '38px',
     backgroundColor: 'transparent',
     border: 'none',
     padding: '0 42px 0 12px',
     resize: 'none' as const,
     fontSize: '15px',
     outline: 'none',
-    lineHeight: '38px',
+    lineHeight: '1.5',
     borderRadius: '6px',
     display: 'flex',
     alignItems: 'center',
     position: 'relative' as const,
     zIndex: 13,
-    color: '#000000'
+    color: '#000000',
+    overflow: 'hidden',
+    marginTop: '0',
+    marginBottom: '0',
+    paddingTop: '8px',   // Add paddingTop for proper vertical alignment
   },
   sendButton: {
     position: 'absolute' as const,
@@ -195,7 +201,7 @@ const styles = {
     width: '32px',
     minWidth: '32px',
     borderRadius: '6px',
-    backgroundColor: '#64748b',
+    backgroundColor: '#000000',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -278,38 +284,40 @@ const styles = {
   userMessage: {
     alignSelf: 'flex-end',
     maxWidth: '80%',
-    backgroundColor: '#ffffff',
-    color: '#1e293b',
+    backgroundColor: 'white',
+    color: '#000000',
     padding: '12px 16px',
-    borderRadius: '18px',
+    borderRadius: '12px',
     fontSize: '15px',
-    margin: '4px 0',
+    margin: '10px 0',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: '38px',
     boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
-    overflow: 'hidden',
+    overflow: 'visible',
     boxSizing: 'border-box' as const,
     width: 'fit-content',
-    wordBreak: 'break-word' as const
+    wordBreak: 'break-word' as const,
+    border: '1px solid #e5e7eb'
   },
   botMessage: {
     alignSelf: 'flex-start',
     maxWidth: '80%',
     backgroundColor: '#f1f5f9',
     color: '#1e293b',
-    padding: '12px 16px',
+    padding: '20px',
     borderRadius: '18px',
     fontSize: '15px',
-    margin: '4px 0',
+    margin: '12px 0',
     display: 'flex',
     alignItems: 'flex-start',
     minHeight: '38px',
     width: 'fit-content',
     overflow: 'auto',
     boxSizing: 'border-box' as const,
-    wordBreak: 'break-word' as const
+    wordBreak: 'break-word' as const,
+    border: '1px solid rgba(0, 0, 0, 0.05)'
   },
   inputContainer: {
     position: 'fixed' as const,
@@ -342,7 +350,9 @@ const styles = {
     height: '38px',
     padding: '0',
     minWidth: '300px',
-    zIndex: 12
+    zIndex: 12,
+    maxHeight: '200px',
+    overflow: 'hidden'
   }
 };
 
@@ -401,7 +411,6 @@ export default function ChatPage() {
   }, []);
   
   const [sources, setSources] = useState<Array<{title: string, url: string}>>([]);
-  const [showButtons, setShowButtons] = useState(false); // State to control showing buttons or input
   const [historyItems, setHistoryItems] = useState<Array<{
     id: string, 
     title: string, 
@@ -441,17 +450,9 @@ export default function ChatPage() {
   // Save history to localStorage when it changes
   useEffect(() => {
     try {
-      console.log('Saving history items:', historyItems.length);
       if (historyItems.length > 0) {
-        // Debug the first item to ensure it has the correct data
-        const firstItem = historyItems[0];
-        console.log('First history item:', {
-          title: firstItem.title,
-          hasAnswer: !!firstItem.answer,
-          sourcesCount: firstItem.sources?.length || 0
-        });
+        localStorage.setItem('chatHistory', JSON.stringify(historyItems));
       }
-      localStorage.setItem('chatHistory', JSON.stringify(historyItems));
     } catch (error) {
       console.error('Error saving history to localStorage:', error);
     }
@@ -505,8 +506,8 @@ export default function ChatPage() {
                 // Update state for UI rendering
                 setSources(extractedSources);
                 console.log('Sources extracted:', jsonData.sources);
-              }
-            } catch (e) {
+                }
+              } catch (e) {
               console.error('Error parsing SSE data line:', e);
             }
           }
@@ -531,14 +532,14 @@ export default function ChatPage() {
               console.log('Sources extracted from JSON:', jsonData.sources);
             }
           }
-        }
-      } catch (e) {
-        console.error('Error parsing completion data:', e);
+            }
+          } catch (e) {
+            console.error('Error parsing completion data:', e);
         // If parsing fails, use the raw completion
-      }
-      
-      // Add the assistant's message to the chat
-      setMessages(prev => [...prev, { role: 'assistant', content: finalText }]);
+        }
+        
+        // Add the assistant's message to the chat
+        setMessages(prev => [...prev, { role: 'assistant', content: finalText }]);
       
       // Add to history when an answer is received
       const questionTitle = prompt.length > 30 ? prompt.substring(0, 30) + '...' : prompt;
@@ -556,7 +557,9 @@ export default function ChatPage() {
         ...prev
       ]);
       
-      scrollToBottom();
+      // After receiving an answer to a new question, scroll to the question
+      // This allows the user to see the context of the answer
+      setTimeout(scrollToQuestion, 500);
     },
     onError: (error) => {
       console.error('Error in chat response:', error);
@@ -567,16 +570,29 @@ export default function ChatPage() {
   
   const [input, setInput] = useState('');
   
-  // Function to scroll to the bottom of the chat container
+  // Ensure proper scroll behavior - modified to allow completely free scrolling
+  useEffect(() => {
+    // Only scroll to bottom on the very first load of messages
+    if (messagesEndRef.current && messages.length === 1) {
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
+      }, 100);
+    }
+    // No auto-scrolling for existing conversations
+  }, [messages]);
+
+  // Function to scroll to the top of the chat container
+  const scrollToTop = () => {
+    const chatContainer = document.getElementById('chat-container');
+    if (chatContainer) {
+      chatContainer.scrollTop = 0;
+    }
+  };
+
+  // Function to scroll to the bottom of the chat container - only used for initial load
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
-    } else {
-      // Fallback method using DOM directly
-      const chatContainer = document.getElementById('chat-container');
-      if (chatContainer) {
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-      }
+      messagesEndRef.current.scrollIntoView({ behavior: 'auto', block: 'end' });
     }
   };
 
@@ -607,15 +623,14 @@ export default function ChatPage() {
           }
           
           // Set up the UI state for viewing a completed conversation
-          setShowButtons(true);
           setIsLoading(false);
           setError(null);
           
           // Clean the URL to prevent reloading on refresh
           window.history.replaceState({}, document.title, '/chat');
           
-          // Scroll to display the conversation after a short delay
-          setTimeout(scrollToBottom, 100);
+          // Reset scroll to top after a short delay
+          setTimeout(scrollToTop, 100);
         }
       } catch (error) {
         console.error('Error loading stored question:', error);
@@ -623,22 +638,25 @@ export default function ChatPage() {
     } else if (questionFromUrl) {
       console.log('Found question in URL:', questionFromUrl);
       
-      // Decode and set the input field with the question from URL
+      // Decode the question from URL
       const decodedQuestion = decodeURIComponent(questionFromUrl);
-      setInput(decodedQuestion);
       
-      // Short delay to ensure the input is set and component is fully mounted before submitting
-      const timer = setTimeout(() => {
-        console.log('Auto-submitting question:', decodedQuestion);
-        
-        // Submit the form
-        handleSubmit({ preventDefault: () => {} } as React.FormEvent<HTMLFormElement>);
-        
-        // Clean the URL to prevent resubmission on refresh
-        window.history.replaceState({}, document.title, '/chat');
-      }, 500); // Increased timeout for reliability
+      // Display the user's question immediately
+      const userMessage = { role: 'user' as const, content: decodedQuestion };
+      setMessages([userMessage]);
       
-      return () => clearTimeout(timer);
+      // Set error, loading states
+      setError(null);
+      setIsLoading(true);
+      
+      // Call the completion API directly with the decoded question
+      complete(decodedQuestion);
+      
+      // Clean the URL to prevent resubmission on refresh
+      window.history.replaceState({}, document.title, '/chat');
+      
+      // Reset scroll to top
+      setTimeout(scrollToTop, 100);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency array as we only want this to run once on mount
@@ -647,35 +665,58 @@ export default function ChatPage() {
     setInput(e.target.value);
     
     if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
+      // Reset height first to get correct scrollHeight
+      textareaRef.current.style.height = '38px';
+      
+      // Set new height based on content (min 38px, max 200px)
+      const newHeight = Math.min(Math.max(textareaRef.current.scrollHeight, 38), 200);
+      textareaRef.current.style.height = `${newHeight}px`;
+      
+      // Adjust the input wrapper height to match
+      if (textareaRef.current.parentElement) {
+        textareaRef.current.parentElement.style.height = `${newHeight}px`;
+      }
     }
   };
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  // Function to scroll to the user's question
+  const scrollToQuestion = () => {
+    const chatContainer = document.getElementById('chat-container');
+    const userMessages = document.querySelectorAll('#chat-container > div');
+    
+    if (chatContainer && userMessages.length > 0) {
+      // Get the last user message (the most recent question)
+      // We find the last user message by checking divs that have user styling
+      let lastUserMessageIndex = -1;
+      for (let i = userMessages.length - 1; i >= 0; i--) {
+        if (userMessages[i].querySelector('[class*="userMessageContent"]')) {
+          lastUserMessageIndex = i;
+          break;
+        }
+      }
+      
+      if (lastUserMessageIndex >= 0) {
+        // Scroll to position the user message at the top of the visible area
+        const userMessage = userMessages[lastUserMessageIndex];
+        const containerTop = chatContainer.getBoundingClientRect().top;
+        const messageTop = userMessage.getBoundingClientRect().top;
+        const offset = messageTop - containerTop - 20; // 20px padding
+        
+        chatContainer.scrollBy({ top: offset, behavior: 'smooth' });
+      }
+    }
+  };
 
-  const formatMessage = (content: string) => {
-    return (
-      <div className={chatStyles.markdownContent} style={{ 
-        width: '100%', 
-        alignSelf: 'center',
-        padding: '0',
-        margin: '0',
-        overflow: 'visible',
-        display: 'block',
-        wordWrap: 'break-word'
-      }}>
-        <ReactMarkdown
-          components={{
-            // Remove custom code renderer to use default styling
-          }}
-        >
-          {content}
-        </ReactMarkdown>
-      </div>
-    );
+  // Update the ensureProperScroll function to use scrollToQuestion
+  const ensureProperScroll = () => {
+    // If this is a new conversation (first message), scroll to bottom
+    if (messages.length <= 1) {
+      setTimeout(scrollToBottom, 300);
+    } 
+    // For subsequent messages in the same conversation, scroll to the question
+    else {
+      setTimeout(scrollToQuestion, 300);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -690,12 +731,16 @@ export default function ChatPage() {
     complete(input.trim());
     
     setInput('');
+    // Reset textarea height
     if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = '38px';
+      if (textareaRef.current.parentElement) {
+        textareaRef.current.parentElement.style.height = '38px';
+    }
     }
     
-    // Show buttons after submitting a question
-    setShowButtons(true);
+    // For new questions, we still want to scroll to see the input
+    ensureProperScroll();
   };
 
   const startNewChat = () => {
@@ -703,7 +748,6 @@ export default function ChatPage() {
     setInput('');
     setError(null);
     setSources([]);  // Clear sources when starting a new chat
-    setShowButtons(false); // Show input box again
   };
 
   // Function to clear all history
@@ -813,11 +857,8 @@ export default function ChatPage() {
       // Set the stored sources
       setSources(historyItem.sources || []);
       
-      // Show buttons instead of input
-      setShowButtons(true);
-      
-      // Scroll to display the conversation
-      setTimeout(scrollToBottom, 100);
+      // Scroll to display the conversation from the top
+      setTimeout(scrollToTop, 100);
     } else {
       console.log('Missing stored answer or sources, using fallback');
       // Fallback for older history items without stored answers
@@ -825,12 +866,7 @@ export default function ChatPage() {
       setMessages([]);
       setSources([]);
       
-      // Set the question from history
-      const userMessage = { role: 'user' as const, content: historyItem.question };
-      setMessages([userMessage]);
-      
-      // Show input box to allow user to resubmit
-      setShowButtons(false);
+      // Set the input with the question from history so user can resubmit
       setInput(historyItem.question);
       
       // Focus on input
@@ -939,6 +975,158 @@ export default function ChatPage() {
     setIsCreatingCarpeta(false);
   };
 
+  const formatMessage = (content: string, isUserMessage: boolean = false) => {
+    // Preprocess content to ensure proper list formatting
+    let processedContent = content;
+    
+    // Ensure proper spacing for list items, especially if they contain nested markdown
+    processedContent = processedContent.replace(/^(\d+)\.\s+\*\*([^*]+)\*\*/gm, '$1. **$2**');
+    
+    return (
+      <div className={`${chatStyles.markdownContent} ${isUserMessage ? chatStyles.userMessageContent : chatStyles.botMessageContent}`} style={{ 
+        width: '100%', 
+        alignSelf: isUserMessage ? 'center' : 'flex-start',
+        padding: isUserMessage ? '0' : '0',
+        margin: '0',
+        overflow: 'visible',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: isUserMessage ? 'center' : 'flex-start',
+        wordWrap: 'break-word',
+        maxWidth: '100%'
+      }}>
+        <ReactMarkdown
+          components={{
+            // Enhanced styling for more consistent spacing and formatting
+            p: ({node, ...props}) => <p style={{margin: '10px 0', lineHeight: '1.5', fontSize: '15px'}} {...props} />,
+            
+            // Enhanced list styling with proper indentation and bullet points
+            ul: ({node, ...props}) => (
+              <ul style={{
+                paddingLeft: '24px', 
+                margin: '12px 0',
+                listStyleType: 'disc',
+                listStylePosition: 'outside',
+                display: 'block',
+                width: '100%'
+              }} {...props} />
+            ),
+            
+            // Enhanced ordered list styling with proper numbering
+            ol: ({node, ...props}) => (
+              <ol style={{
+                paddingLeft: '24px', 
+                margin: '12px 0',
+                listStyleType: 'decimal',
+                listStylePosition: 'outside',
+                display: 'block',
+                width: '100%'
+              }} {...props} />
+            ),
+            
+            // Enhanced list item styling with proper spacing and nested content handling
+            li: ({node, children, ...props}) => {
+              // Check if the child is another list to handle nested lists properly
+              const hasNestedList = React.Children.toArray(children).some(
+                child => React.isValidElement(child) && (child.type === 'ul' || child.type === 'ol')
+              );
+              
+              return (
+                <li style={{
+                  margin: hasNestedList ? '4px 0 0 0' : '4px 0 8px 0',
+                  lineHeight: '1.5',
+                  fontSize: '15px',
+                  display: 'list-item', // Ensure it displays as a list item
+                  padding: '0 0 0 4px', // Add a bit of padding for better readability
+                  width: '100%',       // Ensure list items take full width
+                  position: 'relative' // Helps with positioning markers
+                }} {...props}>
+                  {children}
+                </li>
+              );
+            },
+            
+            // Handle strong/bold text properly, especially in lists
+            strong: ({node, ...props}) => (
+              <strong style={{
+                fontWeight: 'bold',
+                display: 'inline'  // Ensure inline display
+              }} {...props} />
+            ),
+            
+            h1: ({node, ...props}) => <h1 style={{margin: '18px 0 12px 0', lineHeight: '1.3', fontSize: '1.5em', fontWeight: 'bold'}} {...props} />,
+            h2: ({node, ...props}) => <h2 style={{margin: '16px 0 10px 0', lineHeight: '1.3', fontSize: '1.3em', fontWeight: 'bold'}} {...props} />,
+            h3: ({node, ...props}) => <h3 style={{margin: '14px 0 8px 0', lineHeight: '1.3', fontSize: '1.15em', fontWeight: 'bold'}} {...props} />,
+            h4: ({node, ...props}) => <h4 style={{margin: '10px 0 8px 0', lineHeight: '1.3', fontSize: '1.05em', fontWeight: 'bold'}} {...props} />,
+            blockquote: ({node, ...props}) => <blockquote style={{borderLeft: '4px solid #e5e7eb', paddingLeft: '16px', margin: '12px 0', fontStyle: 'italic', color: '#4b5563'}} {...props} />,
+            // Simplify code component to avoid type issues
+            code: ({node, ...props}) => <code style={{backgroundColor: '#f3f4f6', padding: '2px 4px', borderRadius: '4px', fontSize: '0.9em'}} {...props} />,
+            pre: ({node, ...props}) => <pre style={{margin: '12px 0', padding: '12px', backgroundColor: '#f3f4f6', borderRadius: '8px', overflowX: 'auto'}} {...props} />
+          }}
+        >
+          {processedContent}
+        </ReactMarkdown>
+        
+        {/* Add custom CSS to ensure proper list styling */}
+        <style jsx>{`
+          div :global(ol),
+          div :global(ul) {
+            list-style-position: outside;
+            margin-bottom: 16px;
+            padding-left: 24px;
+            width: 100%;
+          }
+          
+          div :global(ol) {
+            list-style-type: decimal;
+          }
+          
+          div :global(ul) {
+            list-style-type: disc;
+          }
+          
+          div :global(li) {
+            display: list-item;
+            margin-bottom: 8px;
+            padding-left: 4px;
+          }
+          
+          /* Ensure nested lists are properly indented */
+          div :global(li > ul),
+          div :global(li > ol) {
+            margin-top: 8px;
+            margin-bottom: 0;
+          }
+          
+          /* Ensure strong text (bold) displays properly in lists */
+          div :global(li strong) {
+            font-weight: bold;
+            display: inline;
+          }
+        `}</style>
+      </div>
+    );
+  };
+
+  // Reset scroll position on initial load
+  useEffect(() => {
+    // Only run once on component mount
+    const chatContainer = document.getElementById('chat-container');
+    if (chatContainer) {
+      // Reset to top
+      chatContainer.scrollTop = 0;
+    }
+  }, []);
+
+  // Fix the "addToBibliography" function (it was missing)
+  const addToBibliography = (source: {title: string, url: string}, e: React.MouseEvent) => {
+    e.preventDefault();
+    // This would typically add the source to a bibliography
+    // For now, just show a notification
+    alert(`Added "${source.title}" to bibliography`);
+  };
+
   return (
     <>
       {/* Set overflow hidden at the document root level */}
@@ -948,12 +1136,23 @@ export default function ChatPage() {
           margin: 0;
           padding: 0;
         }
-        * {
-          overflow-x: hidden; /* Prevent horizontal scrolling everywhere */
+        #chat-container {
+          overflow-y: auto !important;
+          scroll-behavior: auto !important;
+          overscroll-behavior: auto !important;
+          height: 100% !important;
+          position: relative !important;
+        }
+        #chat-container * {
+          overflow: visible !important; /* Allow overflow in all chat container children */
+        }
+        .botMessageScrollable {
+          overflow: visible !important; /* Make assistant messages fully visible without scrolling */
+          max-height: none !important;
         }
       `}</style>
       
-      {/* Header matching app/page.tsx */}
+      {/* Header */}
       <div
         style={{
           position: 'fixed',
@@ -970,6 +1169,7 @@ export default function ChatPage() {
           padding: '0 24px',
           boxSizing: 'border-box',
           borderRadius: '0',
+          overflow: 'visible' /* Ensure header doesn't clip its children */
         }}
       >
         {/* Logo */}
@@ -983,21 +1183,33 @@ export default function ChatPage() {
               src="/logo.png" 
               alt="Agora Logo" 
               style={{ 
-                width: '48px', 
-                height: '48px',
-                objectFit: 'contain',
-                filter: 'grayscale(100%)'
+                width: '60px', 
+                height: '60px',
+                objectFit: 'contain'
               }}
             />
           </div>
-          <span style={{ fontWeight: 'bold', fontSize: '18px', color: '#1e293b' }}>Agora</span>
         </div>
 
         {/* Right side with links and button */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexShrink: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '24px', 
+          flexShrink: 0,
+          position: 'relative', /* Create stacking context */
+          zIndex: 10000, /* Higher than header */
+          overflow: 'visible' /* Ensure no clipping */
+        }}>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '16px',
+            position: 'relative', /* Create stacking context */
+            overflow: 'visible' /* Ensure no clipping */
+          }}>
             <a href="#" style={{ 
-              color: '#475569', 
+              color: '#000000', 
               fontWeight: 500,
               textDecoration: 'none',
               whiteSpace: 'nowrap',
@@ -1006,25 +1218,52 @@ export default function ChatPage() {
               Iniciar Sesión
             </a>
             <button style={{ 
-              background: 'linear-gradient(to right, #ec4899, #8b5cf6)', 
-              color: 'white', 
+              background: 'white',
+              color: 'black', 
               padding: '8px 20px', 
-              borderRadius: '8px',
+              borderRadius: '0',
               fontWeight: 600,
               fontSize: '16px',
-              border: 'none',
+              border: '2px solid #000000',
               cursor: 'pointer',
               whiteSpace: 'nowrap',
-              transition: 'background 0.3s ease',
-              boxShadow: '0 2px 10px rgba(236, 72, 153, 0.3)'
+              transition: 'all 0.3s ease',
+              position: 'relative',
+              boxSizing: 'border-box',
+              overflow: 'visible',
+              zIndex: 10000 /* Ensure button stays above other elements */
             }}
             onMouseOver={(e) => {
-              e.currentTarget.style.background = 'linear-gradient(to right, #d946ef, #8b5cf6)';
+              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
             }}
             onMouseOut={(e) => {
-              e.currentTarget.style.background = 'linear-gradient(to right, #ec4899, #8b5cf6)';
+              e.currentTarget.style.backgroundColor = 'white';
             }}
             >
+              {/* Pink line at the top of the button */}
+              <div style={{
+                position: 'absolute',
+                top: '-4px',
+                left: '2px',
+                width: 'calc(100% - 0px)',
+                height: '2px',
+                backgroundColor: '#ec4899',
+                zIndex: 10001, /* Even higher z-index */
+                pointerEvents: 'none'
+              }}></div>
+              
+              {/* Pink line at the right side of the button */}
+              <div style={{
+                position: 'absolute',
+                top: '-4px',
+                right: '-4px',
+                width: '2px',
+                height: 'calc(100% + 4px)',
+                backgroundColor: '#ec4899',
+                zIndex: 10001, /* Even higher z-index */
+                pointerEvents: 'none'
+              }}></div>
+              
               Registrate
             </button>
           </div>
@@ -1049,9 +1288,9 @@ export default function ChatPage() {
               <span>Nueva Pregunta</span>
             </button>
             
-            <Link href="/archivos" style={styles.navButton}>
+            <Link href="/carpetas" style={styles.navButton}>
               <Folder size={18} />
-              <span>Archivos</span>
+              <span>Carpetas</span>
             </Link>
           </div>
           
@@ -1110,30 +1349,27 @@ export default function ChatPage() {
                       e.currentTarget.style.backgroundColor = '#f3f4f6';
                     }}
                   >
+                    <MessageSquare size={16} style={{ marginRight: '8px', color: '#64748b' }} />
                     <div style={{
-                      width: '10px',
-                      height: '10px',
-                      borderRadius: '50%',
-                      backgroundColor: '#8b5cf6', // Purple color
-                      marginRight: '8px',
-                      flexShrink: 0
-                    }} />
-                    <span style={{
-                      fontSize: '13px',
-                      fontWeight: 500,
-                      color: '#4b5563',
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
-                      textOverflow: 'ellipsis'
+                      textOverflow: 'ellipsis',
+                      fontSize: '14px',
+                      color: '#334155'
                     }}>
                       {item.title}
-                    </span>
+                    </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p style={styles.historySubtitle}>
-                Your conversations will appear here.
+              <p style={{
+                fontSize: '14px',
+                color: '#64748b',
+                marginTop: '12px',
+                fontStyle: 'italic'
+              }}>
+                No history items yet.
               </p>
             )}
           </div>
@@ -1192,6 +1428,7 @@ export default function ChatPage() {
                       fontSize: '2.24rem',
                       fontWeight: 'bold',
                       lineHeight: '1.1',
+                      paddingTop: '32px',
                       paddingBottom: '5px',
                       paddingLeft: '15%',
                       paddingRight: '15%',
@@ -1214,7 +1451,7 @@ export default function ChatPage() {
                         </div>
                       ))}
                     </div>
-                  </div>
+                    </div>
                 ) : (
                   <div style={{
                     ...styles.messageContainer,
@@ -1227,34 +1464,132 @@ export default function ChatPage() {
                     paddingRight: '4px',
                     width: '100%',
                     marginBottom: '0',
-                    paddingBottom: '68px', // Keep padding only in inner container
-                    maxWidth: '100%' // Ensure the container doesn't exceed its bounds
-                  }}>
+                    paddingBottom: '80px', // Increased padding to ensure space for input
+                    paddingTop: '28px', // Increased from 20px to 28px for more space at the top
+                    maxWidth: '100%', // Ensure the container doesn't exceed its bounds
+                    position: 'relative', // Ensure proper positioning
+                    scrollBehavior: 'auto' // Use browser default scrolling
+                  }}
+                  id="chat-container"
+                  >
                     {messages.map((message, index) => (
                       <div 
                         key={index} 
-                        className={message.role === 'assistant' ? chatStyles.botMessageScrollable : ''}
                         style={{
-                          ...message.role === 'user' ? styles.userMessage : styles.botMessage,
-                          flexDirection: 'column',
-                          alignItems: message.role === 'user' ? 'center' : 'flex-start',
-                          justifyContent: message.role === 'user' ? 'center' : 'flex-start',
-                          width: 'auto',
-                          maxWidth: '80%',
-                          maxHeight: message.role === 'assistant' ? bubbleMaxHeight : 'none',
-                          overflow: message.role === 'assistant' ? 'auto' : 'hidden',
+                          display: 'flex', 
+                          width: '100%',
+                          alignItems: 'center',
+                          position: 'relative',
+                          justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start',
+                          marginBottom: '16px',
+                          marginTop: '12px', // Increased from 8px to 12px
+                          padding: '2px 4px', // Added padding on top and bottom
+                          overflow: 'visible' // Ensure overflow is visible
                         }}
                       >
-                        {formatMessage(message.content)}
+                        <div 
+                          className={message.role === 'assistant' ? chatStyles.botMessageScrollable : ''}
+                          style={{
+                            ...message.role === 'user' ? styles.userMessage : styles.botMessage,
+                            flexDirection: 'column',
+                            alignItems: message.role === 'user' ? 'center' : 'flex-start',
+                            justifyContent: 'center',
+                            width: 'auto',
+                            maxWidth: '80%',
+                            maxHeight: 'none',
+                            overflow: 'visible',
+                            marginRight: message.role === 'user' ? '8px' : '0',
+                            marginLeft: message.role === 'assistant' ? '8px' : '0',
+                            borderRadius: message.role === 'user' ? '12px' : '18px',
+                            whiteSpace: 'pre-wrap',
+                            padding: message.role === 'assistant' ? '20px 20px' : '12px 16px'
+                          }}
+                        >
+                          {formatMessage(message.content, message.role === 'user')}
+                        </div>
+                        
+                        {/* Action buttons - only show for assistant's last message */}
+                        {message.role === 'assistant' && index === messages.length - 1 && messages.length > 1 && (
+                          <div style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '12px',
+                            marginLeft: '12px',
+                            alignSelf: 'flex-start',
+                            position: 'relative',
+                            paddingTop: '20px' // Align with the message padding-top
+                          }}>
+                            {/* Save to Carpeta Button */}
+                            <button
+                              onClick={() => setShowSaveToCarpetaDialog(true)}
+                              style={{
+                                width: '32px',
+                                height: '32px',
+                                borderRadius: '8px',
+                                backgroundColor: 'white',
+                                color: 'black',
+                                border: '1px solid #e5e7eb',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                                cursor: 'pointer',
+                                padding: '0'
+                              }}
+                              title="Guardar en Carpeta"
+                              type="button"
+                            >
+                              <FolderPlus size={14} />
+                            </button>
+
+                            {/* Download Button */}
+                            <button
+                              onClick={downloadAnswerAsPdf}
+                              style={{
+                                width: '32px',
+                                height: '32px',
+                                borderRadius: '8px',
+                                backgroundColor: '#64748b',
+                                color: 'white',
+                                border: 'none',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                                cursor: 'pointer',
+                                padding: '0'
+                              }}
+                              title="Descargar Respuesta"
+                              type="button"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                              </svg>
+                            </button>
+                          </div>
+                        )}
                       </div>
                     ))}
                     
                     {isLoading && (
-                      <div style={styles.botMessage}>
+                      <div style={{
+                        ...styles.botMessage,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minHeight: '60px' // Ensure consistent height for loading message
+                      }}>
                         <div style={{
                           fontSize: '15px',
                           color: '#4b5563',
-                          fontStyle: 'italic'
+                          fontStyle: 'italic',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: '100%',
+                          padding: '0 8px'
                         }}>
                           {loadingText}...
                         </div>
@@ -1348,6 +1683,31 @@ export default function ChatPage() {
                               margin: '0 0 8px 0'
                             }}>
                               <SourceCard key={`article-${index}`} title={source.title} url={source.url} />
+                              <button
+                                onClick={(e) => addToBibliography(source, e)}
+                                style={{
+                                  position: 'absolute',
+                                  top: '8px',
+                                  right: '8px',
+                                  backgroundColor: '#3b82f6',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  width: '20px',
+                                  height: '20px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  color: 'white',
+                                  cursor: 'pointer'
+                                }}
+                                title="Añadir a bibliografía"
+                                type="button"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                              </button>
                             </div>
                           ))
                         ) : (
@@ -1359,8 +1719,8 @@ export default function ChatPage() {
                             textAlign: 'center'
                           }}>
                             No hay artículos disponibles
-                          </div>
-                        )}
+                      </div>
+                    )}
                         
                         {/* Documentos header - Complete fix for visibility */}
                         <h3 style={{
@@ -1402,6 +1762,31 @@ export default function ChatPage() {
                               margin: '0 0 8px 0'
                             }}>
                               <DocumentItem key={`document-${index}`} title={source.title} url={source.url} />
+                              <button
+                                onClick={(e) => addToBibliography(source, e)}
+                                style={{
+                                  position: 'absolute',
+                                  top: '8px',
+                                  right: '8px',
+                                  backgroundColor: '#3b82f6',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  width: '20px',
+                                  height: '20px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  color: 'white',
+                                  cursor: 'pointer'
+                                }}
+                                title="Añadir a bibliografía"
+                                type="button"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                              </button>
                             </div>
                           ))
                         ) : (
@@ -1413,8 +1798,8 @@ export default function ChatPage() {
                             textAlign: 'center'
                           }}>
                             No hay documentos disponibles
-                          </div>
-                        )}
+                </div>
+              )}
                       </>
                     ) : (
                       <div style={{
@@ -1451,108 +1836,39 @@ export default function ChatPage() {
             right: 0
           }}>
             <div style={styles.inputForm}>
-              {!showButtons ? (
-                // Show input form when not showing buttons
-                <form ref={formRef} onSubmit={handleSubmit} style={{margin: 0}}>
-                  <div style={styles.inputWrapper}>
-                    <textarea
-                      ref={textareaRef}
-                      style={styles.textarea}
-                      placeholder="Ask anything..."
-                      value={input}
-                      onChange={handleInputChange}
-                      onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && formRef.current?.requestSubmit()}
-                      rows={1}
-                    />
-                    
-                    <button 
-                      type="submit" 
-                      style={styles.sendButton}
-                      disabled={isLoading || !input.trim()}
-                    >
-                      <Send size={16} />
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                // Show buttons after submitting a question
+              <form ref={formRef} onSubmit={handleSubmit} style={{margin: 0}}>
                 <div style={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  gap: '16px',
-                  width: '100%'
+                  ...styles.inputWrapper,
+                  // Ensure consistent input wrapper styles
+                  transition: 'height 0.2s ease'
                 }}>
-                  <button
-                    onClick={() => setShowSaveToCarpetaDialog(true)}
-                    style={{
-                      backgroundColor: '#8b5cf6',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '6px',
-                      padding: '10px 16px',
-                      fontSize: '14px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+                  <textarea
+                    ref={textareaRef}
+                    style={styles.textarea}
+                    placeholder="Que deseas saber?"
+                    value={input}
+                    onChange={handleInputChange}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        formRef.current?.requestSubmit();
+                      }
                     }}
-                    type="button"
-                  >
-                    <FolderPlus size={16} />
-                    Guardar en Carpeta
-                  </button>
-                  <button
-                    onClick={downloadAnswerAsPdf}
+                    rows={1}
+                  />
+                  
+                  <button 
+                    type="submit" 
                     style={{
-                      backgroundColor: '#64748b',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '6px',
-                      padding: '10px 16px',
-                      fontSize: '14px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+                      ...styles.sendButton,
+                      opacity: isLoading || !input.trim() ? 0.5 : 1
                     }}
-                    type="button"
+                    disabled={isLoading || !input.trim()}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                      <polyline points="7 10 12 15 17 10"></polyline>
-                      <line x1="12" y1="15" x2="12" y2="3"></line>
-                    </svg>
-                    Descargar Respuesta
-                  </button>
-                  <button
-                    onClick={startNewChat}
-                    style={{
-                      backgroundColor: '#f3f4f6',
-                      color: '#4b5563',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '6px',
-                      padding: '10px 16px',
-                      fontSize: '14px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}
-                    type="button"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="12" y1="5" x2="12" y2="19"></line>
-                      <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                    Nueva Pregunta
+                    <Search size={16} />
                   </button>
                 </div>
-              )}
+              </form>
             </div>
           </div>
         </div>
@@ -1604,8 +1920,8 @@ export default function ChatPage() {
                   padding: '4px'
                 }}
               >
-                <X size={24} color="#64748b" />
-              </button>
+                  <X size={24} color="#64748b" />
+                </button>
             </div>
 
             {/* Create new carpeta option */}

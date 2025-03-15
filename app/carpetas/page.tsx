@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Folder, File, Plus, Edit, Trash, Search, ArrowLeft, SquarePen, Bookmark } from 'lucide-react';
+import { Folder, File, Plus, Edit, Trash, Search, ArrowLeft, SquarePen, Bookmark, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -74,7 +74,7 @@ const styles = {
   }
 };
 
-export default function ArchivosPage() {
+export default function CarpetasPage() {
   const router = useRouter();
   const [carpetas, setCarpetas] = useState<Carpeta[]>([]);
   const [selectedCarpeta, setSelectedCarpeta] = useState<Carpeta | null>(null);
@@ -95,7 +95,7 @@ export default function ArchivosPage() {
     timestamp: number, 
     question: string,
     answer: string,
-    sources: Array<{title: string, url: string}>
+    sources?: Array<{title: string, url: string}>
   }>>([]);
   
   // Load carpetas from localStorage on component mount
@@ -162,14 +162,15 @@ export default function ArchivosPage() {
   
   // Function to load a question from history
   const loadQuestionFromHistory = (historyItem: {
-    question: string,
+    question?: string,
+    title?: string,
     answer?: string,
     sources?: Array<{title: string, url: string}>
   }) => {
     // Create a stored question key for this history item
     const storedQuestionKey = `stored_question_${Date.now()}`;
     localStorage.setItem(storedQuestionKey, JSON.stringify({
-      question: historyItem.question,
+      question: historyItem.question || historyItem.title || '',
       answer: historyItem.answer || '',
       sources: historyItem.sources || [],
       timestamp: Date.now()
@@ -433,21 +434,19 @@ export default function ArchivosPage() {
               src="/logo.png" 
               alt="Agora Logo" 
               style={{ 
-                width: '48px', 
-                height: '48px',
-                objectFit: 'contain',
-                filter: 'grayscale(100%)'
+                width: '60px', 
+                height: '60px',
+                objectFit: 'contain'
               }}
             />
           </div>
-          <span style={{ fontWeight: 'bold', fontSize: '18px', color: '#1e293b' }}>Agora</span>
         </div>
 
         {/* Right side with links and button */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <a href="#" style={{ 
-              color: '#475569', 
+              color: '#000000', 
               fontWeight: 500,
               textDecoration: 'none',
               whiteSpace: 'nowrap',
@@ -456,25 +455,48 @@ export default function ArchivosPage() {
               Iniciar Sesión
             </a>
             <button style={{ 
-              background: 'linear-gradient(to right, #ec4899, #8b5cf6)', 
-              color: 'white', 
+              background: 'white',
+              color: 'black', 
               padding: '8px 20px', 
-              borderRadius: '8px',
+              borderRadius: '0',
               fontWeight: 600,
               fontSize: '16px',
-              border: 'none',
+              border: '2px solid #000000',
               cursor: 'pointer',
               whiteSpace: 'nowrap',
-              transition: 'background 0.3s ease',
-              boxShadow: '0 2px 10px rgba(236, 72, 153, 0.3)'
+              transition: 'all 0.3s ease',
+              position: 'relative',
+              boxSizing: 'border-box'
             }}
             onMouseOver={(e) => {
-              e.currentTarget.style.background = 'linear-gradient(to right, #d946ef, #8b5cf6)';
+              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
             }}
             onMouseOut={(e) => {
-              e.currentTarget.style.background = 'linear-gradient(to right, #ec4899, #8b5cf6)';
+              e.currentTarget.style.backgroundColor = 'white';
             }}
             >
+              {/* Pink line at the top of the button */}
+              <div style={{
+                position: 'absolute',
+                top: '-4px',
+                left: '2px',
+                width: 'calc(100% - 0px)',
+                height: '2px',  /* Increase height from 2px to 3px */
+                backgroundColor: '#ec4899',
+                zIndex: 1
+              }}></div>
+              
+              {/* Pink line at the right side of the button */}
+              <div style={{
+                position: 'absolute',
+                top: '-4px',
+                right: '-4px',
+                width: '2px',  /* Increase width from 2px to 3px */
+                height: 'calc(100% + 4px)',
+                backgroundColor: '#ec4899',
+                zIndex: 1
+              }}></div>
+              
               Registrate
             </button>
           </div>
@@ -496,23 +518,22 @@ export default function ArchivosPage() {
             ...styles.sidebarNav,
             marginTop: '16px'
           }}>
-            <button 
-              style={styles.navButton} 
-              onClick={goToChat}
-            >
+            <Link href="/chat" style={styles.navButton}>
               <SquarePen size={18} />
               <span>Nueva Pregunta</span>
-            </button>
+            </Link>
             
             <Link 
-              href="/archivos" 
+              href="/carpetas" 
               style={{
                 ...styles.navButton,
-                ...styles.activeNavButton
+                backgroundColor: '#f1f5f9',
+                color: '#3b82f6',
+                fontWeight: 500
               }}
             >
               <Folder size={18} />
-              <span>Archivos</span>
+              <span>Carpetas</span>
             </Link>
           </div>
           
@@ -571,30 +592,27 @@ export default function ArchivosPage() {
                       e.currentTarget.style.backgroundColor = '#f3f4f6';
                     }}
                   >
+                    <MessageSquare size={16} style={{ marginRight: '8px', color: '#64748b' }} />
                     <div style={{
-                      width: '10px',
-                      height: '10px',
-                      borderRadius: '50%',
-                      backgroundColor: '#8b5cf6', // Purple color
-                      marginRight: '8px',
-                      flexShrink: 0
-                    }} />
-                    <span style={{
-                      fontSize: '13px',
-                      fontWeight: 500,
-                      color: '#4b5563',
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
-                      textOverflow: 'ellipsis'
+                      textOverflow: 'ellipsis',
+                      fontSize: '14px',
+                      color: '#334155'
                     }}>
-                      {item.title}
-                    </span>
+                      {item.title || item.question}
+                    </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p style={styles.historySubtitle}>
-                Your conversations will appear here.
+              <p style={{
+                fontSize: '14px',
+                color: '#64748b',
+                marginTop: '12px',
+                fontStyle: 'italic'
+              }}>
+                No history items yet.
               </p>
             )}
           </div>
@@ -649,7 +667,7 @@ export default function ArchivosPage() {
                   color: '#1e293b',
                   margin: 0
                 }}>
-                  {selectedCarpeta ? selectedCarpeta.name : 'Archivos'}
+                  {selectedCarpeta ? selectedCarpeta.name : 'Carpetas'}
                 </h1>
               </div>
               
@@ -1809,7 +1827,7 @@ export default function ArchivosPage() {
                                 </div>
                               </div>
                               <button
-                                onClick={() => removeFromBibliography(source.url)}
+                                onClick={(e) => removeFromBibliography(source.url)}
                                 style={{
                                   position: 'absolute',
                                   top: '8px',
